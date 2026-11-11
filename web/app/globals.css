@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
+/* FINN tokens — dark default, light via prefers-color-scheme or [data-theme="light"].
+   Green/red ONLY for directional numbers; one accent for priority. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0b0d10;
+  --fg: #e8eaed;
+  --muted: #8b919a;
+  --line: #22262c;
+  --card: #12151a;
+  --accent: #7dd3fc;
+  --up: #4ade80;
+  --down: #f87171;
+  --warn: #fbbf24;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f7f8; --fg: #16181d; --muted: #646b75; --line: #e2e4e8; --card: #ffffff;
+    --accent: #0369a1; --up: #15803d; --down: #b91c1c; --warn: #b45309; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f7f7f8; --fg: #16181d; --muted: #646b75; --line: #e2e4e8; --card: #ffffff;
+  --accent: #0369a1; --up: #15803d; --down: #b91c1c; --warn: #b45309; color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+
+.status-kept, .status-on_track { background: color-mix(in oklab, var(--up) 18%, transparent); color: var(--up); }
+.status-missed, .status-revised_down { background: color-mix(in oklab, var(--down) 18%, transparent); color: var(--down); }
+.status-quietly_dropped { background: color-mix(in oklab, var(--warn) 18%, transparent); color: var(--warn); }
+.status-too_early { background: var(--line); color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
