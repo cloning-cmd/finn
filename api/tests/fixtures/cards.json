@@ -1,0 +1,167 @@
+[
+  {
+    "id": "fx_results_infy", "type": "results", "ticker": "INFY", "company": "Infosys", "ts": "2026-11-10T16:05:00+05:30",
+    "tier": "lead", "priority": 91,
+    "headline": "INFY Q2 FY27: revenue +3.1% QoQ, PAT +4.4% QoQ",
+    "one_liner": "Guided 1-3% CC growth for FY27; Q2 delivered 1.5% YoY CC. Margin held at 21%.",
+    "payload": {
+      "period": "Q2 FY27 (Jul-Sep 2026)", "basis": "consolidated", "unit": "₹ Cr", "variant": "standard",
+      "metrics": [
+        {"name": "Revenue", "value": 44490, "prev_q": 43130, "prev_y": 42280, "qoq_pct": 3.1, "yoy_pct": 5.2},
+        {"name": "EBITDA", "value": 10845, "prev_q": 10410, "prev_y": 10190, "qoq_pct": 4.2, "yoy_pct": 6.4},
+        {"name": "PBT", "value": 9640, "prev_q": 9330, "prev_y": 8940, "qoq_pct": 3.3, "yoy_pct": 7.8},
+        {"name": "PAT", "value": 7320, "prev_q": 7010, "prev_y": 6690, "qoq_pct": 4.4, "yoy_pct": 9.4}
+      ],
+      "margins": [{"name": "EBITDA margin", "pct": 24.4, "qoq_bps": 25, "yoy_bps": 30}],
+      "ebitda_method": "computed_excl_other_income",
+      "vs_guidance": {"status": "on_track", "text": "Guided 1-3% CC revenue growth FY27; H1 at 1.5%", "promise_id": "fx_p_infy_rev"},
+      "extraction": "xbrl"
+    },
+    "sources": [{"id": "s_fx1", "label": "Results filing (XBRL)", "url": "https://nsearchives.nseindia.com/corporate/xbrl/INDAS_117294_1348219_16012025074210.xml"}],
+    "chips": [{"label": "vs guidance?", "action": "ask", "arg": "How does Q2 compare with the FY27 guidance?"}, {"label": "Open filing", "action": "open_source", "arg": "s_fx1"}, {"label": "Research", "action": "open_research", "arg": "INFY"}]
+  },
+  {
+    "id": "fx_results_hdfcbank", "type": "results", "ticker": "HDFCBANK", "company": "HDFC Bank", "ts": "2026-11-09T14:30:00+05:30",
+    "tier": "lead", "priority": 84,
+    "headline": "HDFCBANK Q2 FY27: NII +2.8% QoQ, provisions +11% QoQ",
+    "one_liner": "PAT +1.9% QoQ. Credit cost up for a 2nd quarter; NIM guidance of 3.5% not reiterated.",
+    "payload": {
+      "period": "Q2 FY27 (Jul-Sep 2026)", "basis": "standalone", "unit": "₹ Cr", "variant": "lender",
+      "metrics": [
+        {"name": "Net interest income", "value": 32560, "prev_q": 31680, "prev_y": 30110, "qoq_pct": 2.8, "yoy_pct": 8.1},
+        {"name": "Operating profit", "value": 26210, "prev_q": 25740, "prev_y": 24560, "qoq_pct": 1.8, "yoy_pct": 6.7},
+        {"name": "Provisions", "value": 3420, "prev_q": 3080, "prev_y": 2700, "qoq_pct": 11.0, "yoy_pct": 26.7},
+        {"name": "PAT", "value": 17890, "prev_q": 17560, "prev_y": 16820, "qoq_pct": 1.9, "yoy_pct": 6.4}
+      ],
+      "extraction": "pdf_table"
+    },
+    "sources": [{"id": "s_fx2", "label": "Results filing (PDF) p.3", "url": "https://nsearchives.nseindia.com/corporate/", "page": 3}],
+    "chips": [{"label": "vs guidance?", "action": "ask"}, {"label": "Open filing", "action": "open_source", "arg": "s_fx2"}, {"label": "Research", "action": "open_research", "arg": "HDFCBANK"}]
+  },
+  {
+    "id": "fx_people_polycab", "type": "management_change", "ticker": "POLYCAB", "company": "Polycab India", "ts": "2026-11-10T19:40:00+05:30",
+    "tier": "lead", "priority": 78,
+    "headline": "POLYCAB CFO: Gandharv Tongia resigns; Rajesh Shah appointed",
+    "one_liner": "Unscheduled exit 3 weeks after results. Incoming CFO from a listed cables peer.",
+    "payload": {
+      "role": "CFO", "change": "appointment", "effective_date": "2026-12-01",
+      "incoming": {
+        "name": "Rajesh Shah",
+        "bio_lines": ["Chartered accountant, 24 years in corporate finance", "Previously CFO at a listed cables and wires manufacturer (2019-2026)", "Earlier: finance controller roles at two engineering groups"],
+        "prior_roles": ["CFO, listed cables peer", "Finance Controller, engineering group"],
+        "bio_sources": [{"id": "s_fx3a", "label": "From filing", "url": "https://nsearchives.nseindia.com/corporate/", "page": 2, "quote": "Mr. Shah is a Chartered Accountant with over 24 years of experience"}, {"id": "s_fx3b", "label": "Web", "url": "https://example.com/search"}]
+      },
+      "outgoing": {"name": "Gandharv Tongia", "tenure_years": 6.5},
+      "flags": ["unscheduled exit"]
+    },
+    "sources": [{"id": "s_fx3a", "label": "From filing", "url": "https://nsearchives.nseindia.com/corporate/", "page": 2}],
+    "chips": [{"label": "Why now?", "action": "ask", "arg": "What reason did the filing give for the CFO resignation?"}, {"label": "Open filing", "action": "open_source", "arg": "s_fx3a"}]
+  },
+  {
+    "id": "fx_move_suzlon", "type": "price_move", "ticker": "SUZLON", "company": "Suzlon Energy", "ts": "2026-11-10T15:30:00+05:30",
+    "tier": "lead", "priority": 75, "unexplained": true, "explained_by": [],
+    "headline": "SUZLON -6.8% on 2.9x volume, no filing in 48h",
+    "one_liner": "Largest down day in 60 sessions (z = -3.1). No announcement explains it.",
+    "payload": {
+      "close": 38.88, "change_pct": -6.8, "z": -3.1, "volume": 61149309, "vol_multiple": 2.9, "window_filings": [],
+      "sparkline": [44.1, 43.8, 44.6, 44.2, 43.5, 43.9, 44.8, 45.1, 44.4, 43.9, 43.2, 42.8, 43.0, 42.5, 42.1, 41.9, 42.4, 41.8, 41.7, 38.88]
+    },
+    "sources": [{"id": "s_fx4", "label": "NSE EOD (yfinance)", "url": "https://www.nseindia.com/get-quotes/equity?symbol=SUZLON"}],
+    "chips": [{"label": "Mute moves", "action": "mute", "arg": "price_move"}, {"label": "Research", "action": "open_research", "arg": "SUZLON"}]
+  },
+  {
+    "id": "fx_ma_adaniports", "type": "ma", "ticker": "ADANIPORTS", "company": "Adani Ports & SEZ", "ts": "2026-11-10T09:12:00+05:30",
+    "tier": "line", "priority": 66,
+    "headline": "ADANIPORTS to acquire 100% of a container terminal for ₹2,100 Cr",
+    "one_liner": "Cash deal, ~1% of market cap. Closes Q4 FY27 subject to approvals.",
+    "payload": {"summary": "Board approved acquisition of a container terminal operator; consideration ₹2,100 Cr in cash; completion expected by Mar 2027.", "fields": {"Consideration": "₹2,100 Cr", "Funding": "Internal accruals", "Closing": "Q4 FY27"}},
+    "sources": [{"id": "s_fx5", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": [{"label": "Open filing", "action": "open_source", "arg": "s_fx5"}, {"label": "Research", "action": "open_research", "arg": "ADANIPORTS"}]
+  },
+  {
+    "id": "fx_rating_bajfinance", "type": "credit_rating", "ticker": "BAJFINANCE", "company": "Bajaj Finance", "ts": "2026-11-09T11:00:00+05:30",
+    "tier": "line", "priority": 52,
+    "headline": "BAJFINANCE: CRISIL reaffirms AAA/Stable on ₹45,000 Cr NCDs",
+    "payload": {"summary": "Reaffirmation, no outlook change.", "fields": {"Agency": "CRISIL", "Rating": "AAA / Stable", "Instrument": "NCD ₹45,000 Cr"}},
+    "sources": [{"id": "s_fx6", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": [{"label": "Open filing", "action": "open_source", "arg": "s_fx6"}]
+  },
+  {
+    "id": "fx_vol_dixon", "type": "volume_spike", "ticker": "DIXON", "company": "Dixon Technologies", "ts": "2026-11-09T15:30:00+05:30",
+    "tier": "line", "priority": 48, "explained_by": ["fx_capex_dixon"],
+    "headline": "DIXON +2.1% on 3.4x volume",
+    "one_liner": "Explained by: capex announcement (display fab JV) filed same day.",
+    "payload": {
+      "close": 14210, "change_pct": 2.1, "z": 1.1, "volume": 1870000, "vol_multiple": 3.4,
+      "window_filings": [{"id": "fx_capex_dixon", "headline": "DIXON: ₹1,200 Cr display module JV approved", "category": "capex"}],
+      "sparkline": [13650, 13700, 13820, 13790, 13900, 13880, 13950, 14010, 13990, 13920, 13880, 13840, 13900, 13960, 13990, 13950, 13920, 13900, 13918, 14210]
+    },
+    "sources": [{"id": "s_fx7", "label": "NSE EOD (yfinance)", "url": "https://www.nseindia.com/get-quotes/equity?symbol=DIXON"}],
+    "chips": [{"label": "Open filing", "action": "open_source", "arg": "fx_capex_dixon"}]
+  },
+  {
+    "id": "fx_capex_dixon", "type": "capex", "ticker": "DIXON", "company": "Dixon Technologies", "ts": "2026-11-09T08:45:00+05:30",
+    "tier": "line", "priority": 45,
+    "headline": "DIXON: ₹1,200 Cr display module JV approved",
+    "one_liner": "51:49 JV; phase 1 commissioning guided for Q3 FY28.",
+    "payload": {"summary": "Board approved a 51:49 joint venture for display module manufacturing; capex ₹1,200 Cr over 24 months.", "fields": {"Capex": "₹1,200 Cr", "Stake": "51%", "Timeline": "24 months"}},
+    "sources": [{"id": "s_fx8", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": [{"label": "Open filing", "action": "open_source", "arg": "s_fx8"}]
+  },
+  {
+    "id": "fx_div_titan", "type": "dividend", "ticker": "TITAN", "company": "Titan Company", "ts": "2026-11-08T17:20:00+05:30",
+    "tier": "buried", "priority": 28,
+    "headline": "TITAN: interim dividend ₹11/share, record date 18 Nov",
+    "payload": {"summary": "Interim dividend of ₹11 per share; record date 18 Nov 2026."},
+    "sources": [{"id": "s_fx9", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": [{"label": "Open filing", "action": "open_source", "arg": "s_fx9"}]
+  },
+  {
+    "id": "fx_esop_persistent", "type": "unclassified", "ticker": "PERSISTENT", "company": "Persistent Systems", "ts": "2026-11-10T18:02:00+05:30",
+    "tier": "buried", "priority": 5,
+    "headline": "PERSISTENT: allotment of 41,200 shares under ESOP",
+    "payload": {"summary": "Routine ESOP allotment."},
+    "sources": [{"id": "s_fx10", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  },
+  {
+    "id": "fx_news_infy", "type": "unclassified", "ticker": "INFY", "company": "Infosys", "ts": "2026-11-10T15:15:00+05:30",
+    "tier": "buried", "priority": 5,
+    "headline": "INFY: copy of newspaper publication",
+    "payload": {"summary": "Newspaper advertisement of results."},
+    "sources": [{"id": "s_fx11", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  },
+  {
+    "id": "fx_tw_trent", "type": "unclassified", "ticker": "TRENT", "company": "Trent", "ts": "2026-11-09T10:00:00+05:30",
+    "tier": "buried", "priority": 5,
+    "headline": "TRENT: closure of trading window",
+    "payload": {"summary": "Trading window closed ahead of results."},
+    "sources": [{"id": "s_fx12", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  },
+  {
+    "id": "fx_meet_lt", "type": "investor_meetings", "ticker": "LT", "company": "Larsen & Toubro", "ts": "2026-11-10T12:00:00+05:30",
+    "tier": "buried", "priority": 12,
+    "headline": "LT: analyst meet schedule, 13 Nov",
+    "payload": {"summary": "Investor conference participation intimation."},
+    "sources": [{"id": "s_fx13", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  },
+  {
+    "id": "fx_pr_reliance", "type": "press_release", "ticker": "RELIANCE", "company": "Reliance Industries", "ts": "2026-11-10T11:30:00+05:30",
+    "tier": "buried", "priority": 34,
+    "headline": "RELIANCE: press release on retail store openings",
+    "payload": {"summary": "Press release; no financial figures disclosed."},
+    "sources": [{"id": "s_fx14", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  },
+  {
+    "id": "fx_agm_cdsl", "type": "agm_egm", "ticker": "CDSL", "company": "Central Depository Services", "ts": "2026-11-08T09:30:00+05:30",
+    "tier": "buried", "priority": 14,
+    "headline": "CDSL: proceedings of EGM",
+    "payload": {"summary": "EGM proceedings and voting results."},
+    "sources": [{"id": "s_fx15", "label": "Filing", "url": "https://nsearchives.nseindia.com/corporate/"}],
+    "chips": []
+  }
+]
