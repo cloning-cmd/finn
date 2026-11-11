@@ -1,0 +1,21 @@
+ticker,name,nse_symbol,bse_code,sector,industry,is_lender,in_portfolio,weight
+RELIANCE,Reliance Industries,RELIANCE,500325,Energy,Oil & Gas / Retail / Telecom,false,true,10
+HDFCBANK,HDFC Bank,HDFCBANK,500180,Financials,Private Bank,true,true,10
+INFY,Infosys,INFY,500209,IT,IT Services,false,true,8
+BAJFINANCE,Bajaj Finance,BAJFINANCE,500034,Financials,NBFC,true,true,8
+LT,Larsen & Toubro,LT,500510,Industrials,Engineering & Construction,false,true,7
+SUNPHARMA,Sun Pharmaceutical,SUNPHARMA,524715,Healthcare,Pharmaceuticals,false,true,6
+TRENT,Trent,TRENT,500251,Consumer,Retail,false,true,6
+TITAN,Titan Company,TITAN,500114,Consumer,Jewellery & Watches,false,true,5
+ETERNAL,Eternal (Zomato),ETERNAL,543320,Consumer,Internet / Food Delivery,false,true,5
+ASIANPAINT,Asian Paints,ASIANPAINT,500820,Consumer,Paints,false,true,4
+INDIGO,InterGlobe Aviation,INDIGO,539448,Industrials,Airlines,false,true,4
+ADANIPORTS,Adani Ports & SEZ,ADANIPORTS,532921,Industrials,Ports & Logistics,false,true,4
+DIXON,Dixon Technologies,DIXON,540699,Industrials,Electronics Manufacturing,false,true,6
+POLYCAB,Polycab India,POLYCAB,542652,Industrials,Cables & Wires,false,true,4
+PERSISTENT,Persistent Systems,PERSISTENT,533179,IT,IT Services,false,true,4
+CDSL,Central Depository Services,CDSL,,Financials,Depository,false,true,4
+DEEPAKNTR,Deepak Nitrite,DEEPAKNTR,506401,Materials,Chemicals,false,true,3
+SUZLON,Suzlon Energy,SUZLON,532667,Energy,Wind Turbines,false,true,2
+PIDILITIND,Pidilite Industries,PIDILITIND,500331,Materials,Adhesives & Chemicals,false,false,0
+TATAPOWER,Tata Power,TATAPOWER,500400,Utilities,Power,false,false,0

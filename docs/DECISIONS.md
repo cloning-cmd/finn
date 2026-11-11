@@ -1,0 +1,115 @@
+# FINN — DECISIONS (append-only, newest at bottom)
+
+Format: `## YYYY-MM-DD — title` · Decision · Why · Rejected alternatives · Notes/spike findings
+
+## 2026-11-11 — Product thesis: attention budget
+- Decision: FINN optimises for how little the investor reads. Finite Brief with an end state; buried count; minutes saved.
+- Why: brief says the scarce skill is filtering; makes product sense visible.
+- Rejected: infinite feed; chat-first UI (poor for scanning — chat kept for follow-ups via chips).
+
+## 2026-11-11 — Signature features
+- Decision: Promise Ledger (hero of Pull, feeds results alerts), Explain the Move, volatility-aware thresholds,
+  bio-from-filing, cost receipt, citation verifier, replay-a-day.
+- Why: each maps to a graded criterion (creativity, judgment, efficiency) at low build cost.
+
+## 2026-11-11 — Platform: PWA, not native
+- Decision: Next.js installable PWA on Vercel with Web Push.
+- Why: one link works on any phone for graders; no app-store/TestFlight delay.
+- Rejected: Expo (build/distribution overhead in a 4-day window).
+- Note: iOS Web Push only after Add to Home Screen → show install hint; in-app inbox always works.
+
+## 2026-11-11 — Backend: FastAPI + Supabase + GitHub Actions
+- Why: Python ecosystem for yfinance/PDF/scraping; Supabase gives Postgres + pgvector + storage free; Actions = free cron.
+
+## 2026-11-11 — Model routing
+- Decision: rules → parsers → cheap model (Gemini Flash-class / Groq Llama) → strong model (Claude Sonnet / GPT-class)
+  only for synthesis, once per ticker per quarter. All calls cached by (model, prompt_version, input hash).
+- Why: efficiency is bonus-graded; most work is extraction, not reasoning.
+
+## 2026-11-11 — Numbers from code
+- Decision: financial/trajectory/balance-sheet/cash sections computed from screener tables; results via XBRL first,
+  PDF table + cheap LLM fallback; EBITDA computed as PBT + finance costs + D&A when not reported (method recorded).
+- Lenders (banks/NBFCs) use NII / PPOP / provisions / PAT variant.
+
+## 2026-11-11 — Data resilience
+- Decision: app reads only from DB; scrapers run in jobs. NSE primary, BSE fallback. Snapshot mode with "as of" stamp.
+- Why: NSE often blocks cloud IPs; a demo that doesn't run is the worst outcome.
+
+## 2026-11-11 — Management bios
+- Decision: extract profile from the appointment filing (primary), enrich with one web-search snippet; never scrape LinkedIn.
+
+## 2026-11-11 — Portfolio
+- 18 stocks (weights sum 100): RELIANCE 10, HDFCBANK 10, INFY 8, BAJFINANCE 8, LT 7, SUNPHARMA 6, TRENT 6, TITAN 5,
+  ETERNAL 5, ASIANPAINT 4, INDIGO 4, ADANIPORTS 4, DIXON 6, POLYCAB 4, PERSISTENT 4, CDSL 4, DEEPAKNTR 3, SUZLON 2.
+- Research set: INFY, BAJFINANCE, POLYCAB, PIDILITIND, TATAPOWER. Verify all symbols in yfinance (Zomato → ETERNAL;
+  avoid Tata Motors post-demerger).
+
+## 2026-11-11 — Scope cuts
+- Out: intraday prices, news/broker notes, portfolio P&L, auth/multi-user, OCR, native apps, forensic AR notes.
+
+## 2026-11-11 (19:30) — Repo root and runtime
+- Decision: the folder `ENAM assignment` is the repo root (layout from master prompt §4 directly inside it).
+  Python 3.12 via `py -3.12` with venv at `api/.venv` (3.11 not installed; 3.12 is fine for every dep).
+- Why: user choice; avoids a nested folder graders must navigate.
+
+## 2026-11-11 (19:30) — DB access layer: SQLAlchemy + DATABASE_URL, no pgvector dependency
+- Decision: all DB access through SQLAlchemy 2. `DATABASE_URL` defaults to `sqlite:///data/finn.db` for local dev
+  and tests; production uses the Supabase Postgres URL. Embeddings stored as float32 bytes in `chunks.embedding`;
+  similarity search = numpy cosine over the ticker's chunks (at most a few thousand rows per ticker).
+- Why: one code path that works offline, in CI, and in prod; removes pgvector + Supabase as a blocker for every
+  local test; per-ticker chunk counts are far too small to need an ANN index.
+- Rejected: pgvector-only (breaks local/CI without network); Supabase client SDK (ORM gives SQLite parity).
+- Note: `supabase/migrations/001_init.sql` still ships (Postgres DDL) and is the schema of record; SQLAlchemy
+  `create_all` mirrors it for SQLite.
+
+## 2026-11-11 (19:30) — Embeddings: fastembed (ONNX) instead of sentence-transformers
+- Decision: `fastembed` with `BAAI/bge-small-en-v1.5` (384-dim), ONNX runtime, ~100 MB, no torch.
+- Why: Render free tier is 512 MB RAM; torch alone is >1 GB on disk and slow to cold-start.
+- Rejected: sentence-transformers (torch); hosted embedding APIs (another key, another failure mode).
+
+## 2026-11-11 (20:00) — Spike findings (Phase 0)
+**yfinance** (`spikes/s1_yfinance.py`): all 20 symbols (18 portfolio + PIDILITIND, TATAPOWER) resolve with `.NS`;
+batch `yf.download(period="400d")` returns 400 rows each in one call; `Ticker.info` gives sector/industry in 0.6s
+(`industry="Banks - Regional"` for HDFCBANK → usable for lender detection alongside the seed's `is_lender`).
+
+**NSE announcements** (`spikes/s2_nse.py`): works from a residential IP. Warm-up: GET the corporate-filings page
+(the bare homepage returns 403 but the filings page sets cookies). Endpoint
+`/api/corporate-announcements?index=equities[&symbol=]&from_date=DD-MM-YYYY&to_date=DD-MM-YYYY`.
+Fields: `symbol`, `sm_name` (company), `desc` (exchange category text, e.g. "Updates", "Copy of Newspaper
+Publication"), `attchmntText` (subject), `attchmntFile` (PDF on nsearchives.nseindia.com), `an_dt`/`sort_date`
+("2026-11-04 21:01:36", IST), `hasXbrl`, `smIndustry`, `seq_id`. **Omitting `symbol` returns the whole market for
+the window (17,506 rows / 30 days in 2.8s)** → ingestion = ONE call per window, filtered to the portfolio in code.
+Decision: `nse.py` uses the all-equities call; `content_hash = sha256(symbol|sort_date|attchmntText|attchmntFile)`.
+
+**NSE results + XBRL** (`spikes/s6_xbrl.py`): `/api/corporates-financial-results?index=equities&symbol=X&period=Quarterly`
+returns 144 rows for INFY with `consolidated` ("Consolidated"/"Non-Consolidated"), `fromDate`, `toDate`,
+`relatingTo`, `bank` (Y/N), and an `xbrl` URL. The XBRL (Ind-AS taxonomy) parses with lxml; tags:
+`RevenueFromOperations`, `OtherIncome`, `Income` (total), `FinanceCosts`,
+`DepreciationDepletionAndAmortisationExpense`, `ProfitBeforeTax`, `TaxExpense`, `ProfitLossForPeriod`;
+context `OneD` = current quarter (startDate/endDate), `FourD` = YTD; prev-quarter / prev-year contexts to be
+confirmed in enrich_results (fall back to the previous filing's XBRL or screener quarterly table).
+Decision: results enrichment = XBRL for the current quarter + DB/screener for comparatives. Pick the
+`consolidated` row when present, else standalone, and record `basis`.
+
+**BSE announcements API** (`spikes/s3_bse.py`): 403 for a plain httpx client; attempts with browser-fingerprint
+headers were out of bounds for this build, so BSE's JSON API is NOT used. BSE-hosted PDFs
+(`bseindia.com/stockinfo/AnnPdfOpen.aspx?Pname=…`, `bseplus/AnnualReport/…`) download fine with a plain GET.
+Decision: fallback for cloud-IP blocking of NSE is **run `make ingest` from a residential machine** (writes to
+Supabase) plus snapshot mode; GitHub Actions cron is best-effort.
+
+**screener.in** (`spikes/s4_screener.py`): `/company/{SYM}/consolidated/` returns 200 in 0.2s without login.
+Sections with tables: `#quarters` (Sales, Expenses, Operating Profit, OPM, Other Income, Interest, Depreciation,
+PBT, Tax, Net Profit, EPS — 13 quarters), `#profit-loss` (12 years), `#balance-sheet`, `#cash-flow`, `#ratios`
+(debtor/inventory days, CCC, ROCE), `#shareholding`; `#insights` is login-gated (ignored). `#top-ratios` li list
+gives Market Cap, P/E, ROCE, ROE etc. `#documents` lists annual reports (BSE/NSE PDFs) and per-quarter concall
+links labelled "Transcript" / "PPT" / "REC". Use `selectolax.lexbor` (the `parser` backend is deprecated).
+
+**Transcript PDFs** (`spikes/s5_pdf.py`): PyMuPDF text layer is present (2.1k chars/page). Format: participant
+roster on page 1–2, then each speaker turn starts with the speaker's name on its own line (no colon); 104 turns in
+the INFY Q2 FY27 call. Chunker: split on roster-name lines, merge to ~800 tokens, keep speaker + page.
+Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; prefer screener "Transcript" links.
+
+**NSE annual reports**: `/api/annual-reports?index=equities&symbol=X` → `data[].fileName` (nsearchives PDF),
+`fromYr`/`toYr`. Preferred over BSE links (same host as filings, already warmed up).
+
+**Windows console**: set `PYTHONUTF8=1` for any script printing ₹ (cp1252 default).
