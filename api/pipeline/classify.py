@@ -48,10 +48,15 @@ RULES: list[tuple[re.Pattern, str, float, bool]] = [
     (_rx(r"trading window"), "unclassified", 1.0, True),
     (_rx(r"newspaper|advertisement|publication of (notice|results)"), "unclassified", 1.0, False),
     (_rx(r"(reconciliation of share capital|share capital audit|certificate under (regulation|reg|SEBI)|compliance certificate|loss of share|duplicate share|issue of duplicate|investor (complaint|grievance)|secretarial compliance|BRSR|business responsibility|ESG report|sustainability report|annual secretarial|registrar|\bCSR\b|monitoring agency|statement of deviation|deviation)"), "unclassified", 1.0, True),
+    (_rx(r"(\bIEPF\b|investor education|reminder letter|transfer of (equity )?shares to the investor|unclaimed (dividend|shares)|special window|re-lodgement|change in (corporate )?(office )?address|registrar and (share )?transfer)"), "unclassified", 1.0, True),
     (_rx(r"(annual report|notice of (the )?annual general|integrated annual)"), "agm_egm", 0.8, False),
+    # board-meeting intimations hide under meeting/updates descs; catch them before the meeting rules
+    (_rx(r"(meeting of the board of directors|board meeting).*(scheduled|to consider|will be held|is convened)"), "results", 0.4, False),
+    # a press/media release ON the results is part of the results event (collapsed into the outcome filing)
+    (_rx(r"(press|media) release.*(financial results|results for the)"), "results", 1.0, False),
     # calls & meetings BEFORE results (transcripts/recordings mention "financial results")
-    (_rx(r"(transcript|earnings call|earnings conference|conference call|concall|audio recording|video recording|investor call|analyst call|earnings presentation|results presentation)"), "earnings_call", 1.0, True),
-    (_rx(r"(analyst|institutional investor|investor meet|investor conference|investor presentation|investor day|non[- ]deal roadshow|\bNDR\b|investor interaction)"), "investor_meetings", 1.0, False),
+    (_rx(r"(transcript|earnings call|earnings conference|conference call|concall|audio recording|video recording|link of (the )?recording|\brecording\b|earnings presentation|results presentation)"), "earnings_call", 1.0, True),
+    (_rx(r"(analyst|institutional investor|investor meet|investor conference|investor presentation|investor day|non[- ]deal roadshow|\bNDR\b|investor interaction|investor call)"), "investor_meetings", 1.0, False),
     # results
     (_rx(r"(financial results|results? for the (quarter|period|half|year)|unaudited .*results|audited .*results|quarterly results|statement of (standalone|consolidated) .*results|interim condensed)"), "results", 1.0, True),
     # people
@@ -62,14 +67,14 @@ RULES: list[tuple[re.Pattern, str, float, bool]] = [
     (_rx(r"(pledge|encumbrance|encumbered|regulation 31\b|reg\.? 31\b)"), "pledging", 1.0, True),
     (_rx(r"(takeover regulations|\bSAST\b|regulation 29|reg\.? 29|regulation 7 ?\(2\)|reg\.? 7 ?\(2\)|insider trading|\bPIT\b|prohibition of insider|regulation 10\(6\)|reg\.? 10\(6\))"), "insider_trading", 1.0, True),
     # deals & capital
-    (_rx(r"(initial public offer|\bIPO\b|listing of (the )?(equity )?shares of|proposed listing|demerger|scheme of arrangement|amalgamation|merger)"), "ma", 1.2, True),
-    (_rx(r"(acquisition|acquire|acquired|joint venture|\bJV\b|divest|disinvest|slump sale|sale or disposal|stake (sale|purchase)|strategic investment|incorporation of|wholly[- ]owned subsidiary|subsidiary|associate company|share purchase agreement|\bSPA\b|business transfer|restructuring|insolvency|\bCIRP\b|resolution plan)"), "ma", 1.0, True),
+    # legal before deals: insolvency/NCLT matters are litigation even when a resolution plan is mentioned
+    (_rx(r"(litigation|arbitration|court|tribunal|\bNCLT\b|\bNCLAT\b|show[- ]cause|penalty|penalt|fine imposed|SEBI order|adjudication|writ|demand notice|tax demand|GST (demand|order)|income tax (order|demand)|orders? passed|action\(s\) taken|legal proceeding|dispute|claim filed|insolvency|\bCIRP\b|resolution professional)"), "litigation", 1.0, True),
+    (_rx(r"(initial public offer|\bIPO\b|listing of (the )?(equity )?shares of|proposed listing|trading in (the )?(equity )?shares of .* (will )?commence|commencement of trading|demerger|scheme of arrangement|amalgamation|merger)"), "ma", 1.2, True),
+    (_rx(r"(acquisition|acquire|acquired|joint venture|\bJV\b|divest|disinvest|slump sale|sale or disposal|stake (sale|purchase)|strategic investment|incorporation of|wholly[- ]owned subsidiary|subsidiary|associate company|share purchase agreement|\bSPA\b|business transfer|restructuring|resolution plan)"), "ma", 1.0, True),
     (_rx(r"(buy[- ]?back)"), "bonus_split", 1.4, True),
     (_rx(r"(bonus (issue|shares)|stock split|sub-?division of (equity )?shares|split of (equity )?shares)"), "bonus_split", 1.0, True),
     (_rx(r"(dividend|record date|book closure)"), "dividend", 1.0, True),
     (_rx(r"(\bQIP\b|qualified institution|preferential (issue|allotment)|rights issue|fund ?raising|raising of funds|raise funds|issuance of (securities|equity|shares|debentures|NCD|commercial paper|bonds)|issue of securities|allotment of (debentures|NCD|commercial paper|bonds|equity shares|securities)|\bNCDs?\b|commercial paper|debentures|borrowing|term loan|\bECB\b|external commercial)"), "fund_raise", 1.0, True),
-    # legal
-    (_rx(r"(litigation|arbitration|court|tribunal|\bNCLT\b|\bNCLAT\b|show[- ]cause|penalty|penalt|fine imposed|SEBI order|adjudication|writ|demand notice|tax demand|GST (demand|order)|income tax (order|demand)|orders? passed|action\(s\) taken|legal proceeding|dispute|claim filed)"), "litigation", 1.0, True),
     # business
     (_rx(r"(capex|capacity (expansion|addition)|expansion|new (plant|facility|unit|manufacturing)|commission(ing|ed)|greenfield|brownfield|setting up (of )?(a )?(plant|facility)|investment in (plant|capacity))"), "capex", 1.0, True),
     (_rx(r"(order (win|received|book|inflow)|bagged|bagging|receiving of orders|secures? (an )?order|contract (award|win|received)|letter of (award|intent)|\bLOA\b|\bLOI\b|wins? (order|contract)|awarded)"), "press_release", 1.0, False),
@@ -97,12 +102,18 @@ def clean_subject(ticker: str, subject: str) -> str:
     return s[:1].upper() + s[1:] if s else s
 
 
-def classify_text(desc: str, subject: str, body: str = "") -> Optional[Classification]:
+PR_FILENAME = _rx(r"_PR_|press[_-]?release|media[_-]?release")
+
+
+def classify_text(desc: str, subject: str, body: str = "", url: str = "") -> Optional[Classification]:
     text = f"{desc or ''} || {subject or ''}"
     probe = f"{text} || {(body or '')[:1500]}"
     for pat, cat, intensity, _ in RULES:
         if pat.search(text):
             return refine(Classification(category=cat, intensity=intensity, note=pat.pattern[:30]), probe)
+    # NSE names press-release attachments "<SYM>_<ts>_PR_<date>.pdf"
+    if url and PR_FILENAME.search(url.rsplit("/", 1)[-1]):
+        return refine(Classification(category="press_release", intensity=0.9, confidence=0.8, note="url:PR"), probe)
     # second pass: subject was uninformative ("General Updates"); look at the first page of the attachment
     if body:
         for pat, cat, intensity, body_ok in RULES:
@@ -165,7 +176,7 @@ def classify_pending(limit: int = 5000, use_llm: bool = True, reclassify_all: bo
                 llm = None
         for f in rows:
             stats["total"] += 1
-            c = classify_text(f.raw_category or "", f.subject or "", f.body_text or "")
+            c = classify_text(f.raw_category or "", f.subject or "", f.body_text or "", f.attachment_url or "")
             if c is None and llm is not None:
                 c = llm(f)
                 if c:

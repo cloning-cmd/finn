@@ -21,7 +21,7 @@ def test_rule_coverage_and_accuracy_on_labelled_set():
     correct = 0
     misses = []
     for r in rows:
-        c = classify_text(r["desc"], r["subject"], r.get("body", ""))
+        c = classify_text(r["desc"], r["subject"], r.get("body", ""), r.get("url", ""))
         if c is not None:
             covered += 1
             if c.category == r["label"]:

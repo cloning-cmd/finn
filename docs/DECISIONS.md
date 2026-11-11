@@ -135,6 +135,8 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - NSE `desc` values seen (for the writeup): "Analysts/Institutional Investor Meet/Con. Call Updates" (64 of 262),
   "General Updates" (34), "Updates" (22), "Outcome of Board Meeting" (21), "Copy of Newspaper Publication" (15),
   "Press Release" (14), "Credit Rating" (8), "Allotment of Securities" (8), "Investor Presentation" (8) …
+- Caveat for the writeup: the labelled set was also used to tune rules (100% after tuning). The honest claim is
+  "≥ 90% on filings seen during development"; a held-out check on a fresh day's filings is a Phase 3 task.
 - Ordering matters: earnings_call/investor_meetings rules run BEFORE results (transcripts mention "financial
   results"); routine buckets (ESOP, trading window, newspaper, certificates) run first of all.
 - Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
