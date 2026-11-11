@@ -1,5 +1,5 @@
 "use client";
-import type { Card, ResultsPayload, PeoplePayload, MovePayload, GenericPayload } from "@/lib/types";
+import type { Card, Chip, ResultsPayload, PeoplePayload, MovePayload, GenericPayload } from "@/lib/types";
 import { CATEGORY_LABEL } from "@/lib/types";
 import { fmtCr, fmtPct, fmtBps, fmtX, fmtVol, fmtWhen, dirClass } from "@/lib/format";
 import Sparkline from "@/components/charts/Sparkline";
@@ -97,13 +97,18 @@ function Generic({ p }: { p: GenericPayload }) {
   );
 }
 
-export default function CardView({ card, compact = false }: { card: Card; compact?: boolean }) {
+export default function CardView({ card, compact = false, onChip, onExpand }: {
+  card: Card; compact?: boolean; onChip?: (chip: Chip, card: Card) => void; onExpand?: (card: Card) => void;
+}) {
   const p = card.payload;
+  const related = card.sources.filter((s) => s.id.startsWith("s_rel_")).length;
+  const chips: Chip[] = related > 0 ? [{ label: `+${related} related`, action: "open_source", arg: "related" }, ...card.chips] : card.chips;
   return (
-    <article className={`rounded-xl border border-line bg-card ${compact ? "px-3 py-2.5" : "p-3.5"}`}>
+    <article className={`rounded-xl border border-line bg-card ${compact ? "px-3 py-2.5" : "p-3.5"}`} onClick={compact && onExpand ? () => onExpand(card) : undefined}>
       <header className="flex items-center gap-2 text-[11px] text-muted">
         <span className="font-semibold text-fg">{card.ticker}</span>
         <TypeTag card={card} />
+        {compact && related > 0 && <span className="tabular">+{related}</span>}
         <span className="ml-auto tabular">{fmtWhen(card.ts)}</span>
         <span className="tabular rounded-sm bg-accent/15 px-1.5 text-accent" title="priority">{Math.round(card.priority)}</span>
       </header>
@@ -115,10 +120,10 @@ export default function CardView({ card, compact = false }: { card: Card; compac
           {card.type === "management_change" && <People p={p as PeoplePayload} />}
           {(card.type === "price_move" || card.type === "volume_spike") && <Move p={p as MovePayload} card={card} />}
           {!["results", "management_change", "price_move", "volume_spike"].includes(card.type) && <Generic p={p as GenericPayload} />}
-          {card.chips.length > 0 && (
+          {chips.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {card.chips.map((c, i) => (
-                <button key={i} className="rounded-full border border-line px-2.5 py-1 text-[12px] text-fg active:bg-line">{c.label}</button>
+              {chips.map((c, i) => (
+                <button key={i} onClick={() => onChip?.(c, card)} className="rounded-full border border-line px-2.5 py-1 text-[12px] text-fg active:bg-line">{c.label}</button>
               ))}
             </div>
           )}

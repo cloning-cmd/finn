@@ -1,7 +1,7 @@
 # FINN — STATE (living handoff)
 
 > Update after every task. The section "NEXT SESSION STARTS HERE" must always be accurate.
-> Last updated: 2026-11-12 00:40 IST
+> Last updated: 2026-11-12 01:10 IST
 
 ## Current phase
 Phase 1 — Push backend + app shell. Phase 0 local acceptance met; **deploys still pending user account steps**
@@ -18,6 +18,12 @@ numbers); the swipe UI on real data remains for Thu.
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **Brief UI on real data** (2026-11-12 01:10): `web/.env.local` fixture off, default window 7d (+30d option),
+  `SwipeCard` (framer-motion drag; right=noted, left=less; feedback POST delayed 4s so Undo just cancels),
+  `Toast`, `SourceSheet` (bottom sheet: filing PDF, XBRL, related filings), chips wired (open_source → sheet,
+  open_research/ask → /research?t=, mute → less), line cards expand on tap. API: collapsed filings ride along as
+  `s_rel_*` sources (`with_related` in `api/routers/brief.py`) so the UI shows "+N related" without a contract
+  change. `npm run build` clean.
 - **Results enrichment** `api/pipeline/enrich_results.py` (2026-11-12 00:30): NSE integrated-filing XBRL → Revenue/
   EBITDA/PBT/PAT (+ margins) or NII/PPOP/Provisions/PAT for banks and NBFCs, QoQ/YoY from the previous quarters'
   XBRL, numeric headlines + one-liners, XBRL source + "Open XBRL" chip, 2-day filed-date guard, loss-aware copy.
@@ -35,14 +41,13 @@ numbers); the swipe UI on real data remains for Thu.
 - (none)
 
 ## Next 3 tasks
-1. **Brief UI on real data** — point `web/` at `http://127.0.0.1:8000/brief` (env `NEXT_PUBLIC_API_URL`, fixture
-   off), check the results card renders the XBRL payload (lender variant has no margins), swipe (framer-motion
-   drag: right=noted, left=less → `POST /feedback` with ticker+category, toast+undo), "+N related" chip from
-   `payload.related_count`, source bottom sheet (XBRL + PDF links).
-2. **Deploys + cron** — user steps below; then `.github/workflows/{filings,eod}.yml` (best-effort; NSE may block
-   Actions IPs → fallback is `make ingest` locally against Supabase).
-3. **Phase 2 kick-off** — cheap-LLM `one_liner` for generic "Disclosure under Reg 30" leads and the SUZLON credit
-   rating cards (LLM router + SQL cache first: `api/llm/router.py`), then the pull engine (`make research T=INFY`).
+1. **Deploys + cron** — waiting on user: keys pasted in chat → `.env`; `gh` installed + authed; Vercel token +
+   Render API key. Then: migration on Supabase, seed/eod/ingest against Supabase, `gh repo create` + push, Vercel
+   (root `web`, `NEXT_PUBLIC_API_URL`), Render blueprint + env vars, `.github/workflows/{filings,eod}.yml`.
+2. **Phase 2 kick-off** — LLM router + SQL cache (`api/llm/router.py`), cheap-LLM `one_liner` for generic
+   "Disclosure under Reg 30" leads and the SUZLON credit-rating cards, Tier-1 LLM classify for the 5 fallbacks.
+3. **Pull engine** — `make research T=INFY`: screener tables → financials/trajectory/balance sheet/cash; annual
+   report + concall ingestion → chunks/embeddings; promise ledger; verifier; dossier endpoint + Research screen.
 
 ## Blockers (user actions)
 - Install GitHub CLI → `gh auth login` → tell the agent; it will `gh repo create` + push.

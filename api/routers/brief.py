@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api import db
-from api.models import Brief, BuriedGroup, BuriedItem, Card, Counts, Window
+from api.models import Brief, BuriedGroup, BuriedItem, Card, Counts, Source, Window
 
 router = APIRouter(tags=["brief"])
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "cards.json"
@@ -75,8 +75,25 @@ def get_brief(window: str = Query("24h"), frm: Optional[str] = Query(None, alias
     filings = s.scalars(select(db.Filing).where(db.Filing.ts >= start, db.Filing.ts <= end, db.Filing.tier.is_not(None))).all()
     anomalies = s.scalars(select(db.Anomaly).where(db.Anomaly.date >= start.date().isoformat(), db.Anomaly.date <= end.date().isoformat(),
                                                    db.Anomaly.payload.is_not(None))).all()
-    cards = [filing_to_card(f) for f in filings] + [anomaly_to_card(a) for a in anomalies]
+    by_id = {f.id: f for f in filings}
+    cards = [with_related(filing_to_card(f), f, by_id) for f in filings] + [anomaly_to_card(a) for a in anomalies]
     return build_brief(cards, start, end)
+
+
+def with_related(card: Card, f: db.Filing, by_id: dict[str, db.Filing]) -> Card:
+    """Filings collapsed into this event (same ticker+category within 48h) ride along as `s_rel_` sources, so the
+    UI can show "+N related" and open each one without a contract change."""
+    ids = (f.payload or {}).get("related_ids") or []
+    extra = []
+    for rid in ids:
+        r = by_id.get(rid)
+        if r is None:
+            continue
+        extra.append(Source(id=f"s_rel_{rid[-12:]}", label=(r.headline or r.subject or rid)[:90],
+                            url=r.attachment_url or f"https://www.nseindia.com/companies-listing/corporate-filings-announcements?symbol={r.ticker}"))
+    if extra:
+        card.sources = list(card.sources) + extra
+    return card
 
 
 class FeedbackIn(BaseModel):
