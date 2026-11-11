@@ -46,9 +46,11 @@ class PriceEOD(Base):
     close = Column(Float)
     volume = Column(Integer)
     ret = Column(Float)          # daily return (fraction)
-    vol60 = Column(Float)        # std of daily returns, 60d
-    vol_avg20 = Column(Float)    # mean volume, 20d
-    z = Column(Float)            # ret / vol60
+    mkt_ret = Column(Float)      # NIFTY 50 return same day
+    ret_ex = Column(Float)       # ret - mkt_ret (market-adjusted)
+    vol60 = Column(Float)        # std of ret_ex over the prior 60 sessions
+    vol_avg20 = Column(Float)    # mean volume over the prior 20 sessions
+    z = Column(Float)            # ret_ex / vol60
 
 
 class Filing(Base):
@@ -227,6 +229,26 @@ def get_db() -> Iterator[Session]:
         yield s
     finally:
         s.close()
+
+
+def upsert(s: Session, model, rows: list[dict], pk: list[str], chunk: int = 500) -> int:
+    """Dialect-aware bulk upsert (SQLite + Postgres). Returns rows written."""
+    if not rows:
+        return 0
+    if engine.dialect.name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert as _insert
+    else:
+        from sqlalchemy.dialects.sqlite import insert as _insert
+    table = model.__table__
+    n = 0
+    for i in range(0, len(rows), chunk):
+        batch = rows[i:i + chunk]
+        stmt = _insert(table).values(batch)
+        update_cols = {c.name: getattr(stmt.excluded, c.name) for c in table.columns if c.name not in pk}
+        stmt = stmt.on_conflict_do_update(index_elements=pk, set_=update_cols) if update_cols else stmt.on_conflict_do_nothing(index_elements=pk)
+        s.execute(stmt)
+        n += len(batch)
+    return n
 
 
 def ping() -> bool:

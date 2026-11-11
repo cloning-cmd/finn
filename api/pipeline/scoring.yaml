@@ -1,0 +1,54 @@
+# FINN priority model. priority = clamp(100 * base[category] * intensity * pos_weight_factor * surprise * pref, 0, 100)
+# Every constant lives here so the writeup can explain the ranking.
+base:
+  results: 0.9
+  management_change: 0.8          # CEO/CFO/MD/Chair; others scaled by intensity (see classify refinements)
+  ma: 0.85
+  fund_raise: 0.7
+  litigation: 0.7
+  credit_rating: 0.75             # reaffirmation -> intensity 0.2 (=> 0.15 effective)
+  pledging: 0.7                   # release/decrease -> intensity 0.45
+  insider_trading: 0.45
+  capex: 0.5
+  press_release: 0.4
+  dividend: 0.3
+  bonus_split: 0.35
+  earnings_call: 0.35
+  investor_meetings: 0.1
+  agm_egm: 0.15
+  postal_ballot: 0.15
+  unclassified: 0.05
+  price_move: 0.6                 # explained 2.5σ move ~ line; unexplained (+15) ~ lead; 4σ+ lead regardless
+  volume_spike: 0.4
+
+tiers:
+  lead: 70
+  line: 40
+
+position:                          # pos_weight_factor = floor + slope * weight (weight as fraction of portfolio)
+  floor: 0.8
+  slope: 2.0
+
+surprise:
+  same_day_abs_z: 2.0              # if the stock moved |z| >= this on the filing day -> x1.5
+  factor: 1.5
+  guidance_gap_factor: 1.3         # results card with a missed promise
+
+pref:                              # swipe feedback per (ticker, category)
+  less_each: 0.7
+  noted_each: 1.05
+  min: 0.5
+  max: 1.2
+
+anomaly:                           # default thresholds; user rules override (Phase 2)
+  z: 2.5
+  pct: 5.0
+  volume_multiple: 2.0
+  lookback_days: 20
+  unexplained_bonus: 15
+  explain_window_before_days: 2
+  explain_window_after_days: 1
+  explain_min_priority: 40
+  intensity_cap: 1.5
+  intensity_floor: 0.6             # price intensity = floor + slope * |z| (z is market-adjusted)
+  intensity_slope: 0.15

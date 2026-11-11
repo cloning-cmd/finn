@@ -113,3 +113,29 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 `fromYr`/`toYr`. Preferred over BSE links (same host as filings, already warmed up).
 
 **Windows console**: set `PYTHONUTF8=1` for any script printing ₹ (cp1252 default).
+
+## 2026-11-11 (21:00) — Market-adjusted z-score for Explain the Move
+- Decision: `z = (ret − NIFTY ret) / std60(ret − NIFTY ret)`, std over the prior 60 sessions (excluding the day).
+  NIFTY 50 (`^NSEI`) is stored in `prices_eod` under ticker `NIFTY`. Volume multiple = volume / prior-20-session mean.
+- Why: with raw z, a broad rally day (NIFTY +2.4% on 2026-11-0x) flagged 13 "unexplained" leads across 18 stocks in
+  10 days; market-adjusted z cut that to 7 moves / 5 unexplained and the survivors were genuinely stock-specific
+  (DIXON +12% on 6× volume, BAJFINANCE +7.6%). A move explained by the index is not news.
+- Price-move priority: base 0.6, intensity = 0.6 + 0.15·|z| (cap 1.5), +15 if unexplained. So an explained 2.5σ
+  move is a line card (the filing itself is the lead), an unexplained one is a lead.
+
+## 2026-11-11 (21:00) — Event collapsing + classifier findings on 262 real filings
+- Decision: same ticker + category within 48h = one event. Highest-priority filing stays; the rest are demoted to
+  buried with `payload.collapsed_into`; the primary gets `related_count`/`related_ids` (UI shows "+N related").
+  Not applied to investor_meetings/unclassified (already buried).
+- Why: results day produces 3–5 filings (outcome, press release, media release, presentation, newspaper copy).
+  Without collapsing the brief had 56 leads in 30 days; with it, 35 leads / 24 line / 203 buried.
+- Classifier: rule coverage 98.1% on the 30-day backfill (5 fallbacks, all "General Updates" with
+  letterhead-only first pages → Tier 1 LLM in Phase 2). Hand-labelled set: `api/tests/fixtures/filings_labelled.json`
+  (58 labelled of 60 random real filings); test asserts coverage ≥ 80% and accuracy ≥ 90%.
+- NSE `desc` values seen (for the writeup): "Analysts/Institutional Investor Meet/Con. Call Updates" (64 of 262),
+  "General Updates" (34), "Updates" (22), "Outcome of Board Meeting" (21), "Copy of Newspaper Publication" (15),
+  "Press Release" (14), "Credit Rating" (8), "Allotment of Securities" (8), "Investor Presentation" (8) …
+- Ordering matters: earnings_call/investor_meetings rules run BEFORE results (transcripts mention "financial
+  results"); routine buckets (ESOP, trading window, newspaper, certificates) run first of all.
+- Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
+- Order wins → `press_release` (no "order" category); rumour verifications → `press_release` at full intensity.

@@ -27,9 +27,9 @@ def build_brief(cards: list[Card], frm: dt.datetime, to: dt.datetime, as_of: Opt
     buried = [c for c in cards if c.tier == "buried"]
     groups: dict[str, list[Card]] = defaultdict(list)
     for c in buried:
-        groups[c.type if c.type in ("price_move", "volume_spike") else c.type].append(c)
+        groups["unclassified" if c.type in ("price_move", "volume_spike") else c.type].append(c)
     buried_groups = [
-        BuriedGroup(category=cat if cat not in ("price_move", "volume_spike") else "unclassified", count=len(items),
+        BuriedGroup(category=cat, count=len(items),
                     items=[BuriedItem(id=i.id, headline=i.headline, ticker=i.ticker) for i in
                            sorted(items, key=lambda c: c.ts, reverse=True)])
         for cat, items in sorted(groups.items(), key=lambda kv: -len(kv[1]))

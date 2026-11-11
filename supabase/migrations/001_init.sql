@@ -18,7 +18,8 @@ create table if not exists prices_eod (
   date text not null,
   open double precision, high double precision, low double precision, close double precision,
   volume bigint,
-  ret double precision, vol60 double precision, vol_avg20 double precision, z double precision,
+  ret double precision, mkt_ret double precision, ret_ex double precision,
+  vol60 double precision, vol_avg20 double precision, z double precision,
   primary key (ticker, date)
 );
 
