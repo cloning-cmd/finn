@@ -141,3 +141,29 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
   results"); routine buckets (ESOP, trading window, newspaper, certificates) run first of all.
 - Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
 - Order wins → `press_release` (no "order" category); rumour verifications → `press_release` at full intensity.
+
+## 2026-11-12 (00:30) — Results numbers: NSE integrated-filing XBRL, comparatives from earlier quarters
+- Finding: `/api/corporates-financial-results` stops at the Dec-2024 quarter. From the quarter ended 31 Dec 2024
+  (SEBI integrated filing) results live at `/api/integrated-filing-results?index=equities&symbol=X&period=Quarterly&size=100`
+  → `data[]` with `type` ("Integrated Filing- Financials" / "- Governance"), `qe_Date` (DD-MON-YYYY), `consolidated`
+  ("Consolidated"/"Standalone"), `audited`, `broadcast_Date`, `xbrl` (plain XML, the one we parse) and `ixbrl` (HTML).
+  7 quarters are listed (Mar-2025 → Sep-2026), enough for QoQ and YoY; the legacy endpoint is merged in for older quarters.
+- XBRL contexts: only `OneD` (the quarter, also for Q4), `FourD` (YTD), `OneI`/`PY_I` (instants). No prior-period facts
+  in the file → comparatives come from the previous quarter's and the year-ago quarter's XBRL (same basis).
+  Values are in rupees (÷1e7 → ₹ Cr) even though `LevelOfRounding` says Crores.
+- Three tag sets (format detected from tags, not from `Company.is_lender`): Ind-AS corporate (`RevenueFromOperations`,
+  `ProfitBeforeTax`, `FinanceCosts`, `DepreciationDepletionAndAmortisationExpense`, `OtherIncome`, `ProfitLossForPeriod`);
+  banking (`InterestEarned`, `InterestExpended`, `OperatingProfitBeforeProvisionAndContingencies`,
+  `ProvisionsOtherThanTaxAndContingencies`, `ProfitLossForThePeriod`); NBFC Ind-AS (`InterestEarned`, `FinanceCosts`,
+  `ImpairmentOnFinancialInstruments`, `ProfitBeforeTax`, `ProfitLossForPeriod`).
+- Decision: standard card = Revenue, EBITDA (= PBT + finance costs + D&A − other income, `computed_excl_other_income`),
+  PBT, PAT + EBITDA/PAT margins. Lender card = NII, PPOP, Provisions, PAT (bank: NII = interest earned − expended,
+  PPOP reported; NBFC: NII = interest earned − finance costs, PPOP = PBT + impairment). No margins for lenders.
+- Decision: consolidated row preferred, else standalone; `basis` recorded. The XBRL must be broadcast within 2 days of
+  the filing, otherwise the filing is not the results (a 12 Oct SUNPHARMA board-meeting notice would otherwise have
+  carried numbers filed on 30 Oct) → card reverts to the generic form with `payload.results.gaps`.
+- Decision: % change = (cur − prev) / |prev|; for a loss the headline states amounts ("loss ₹1,879 Cr (vs ₹2,582 Cr
+  loss)") instead of a percentage against a negative base. Missing comparatives → 0 with a gap, never invented.
+- Headline template: "{T} Q2 FY27: rev ₹49,244 Cr +10.7% YoY, PAT ₹7,838 Cr +6.3%" (falls back to %-only, then
+  PAT-only, to stay ≤ 70). One-liner: EBITDA margin + bps deltas (or PPOP for lenders). Indian digit grouping.
+- Result on the 30-day backfill: 18 of 20 primary results filings enriched, 0 LLM calls, 0 gaps; 2 correctly rejected.

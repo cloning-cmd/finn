@@ -2,7 +2,7 @@
 PY ?= $(shell if [ -x api/.venv/Scripts/python.exe ]; then echo api/.venv/Scripts/python.exe; else echo api/.venv/bin/python; fi)
 T ?= INFY
 
-.PHONY: dev api web ingest eod research test seed vapid spikes
+.PHONY: dev api web ingest enrich eod research test seed vapid spikes
 
 dev: ## run API (8000) and web (3000) together
 	@$(MAKE) -j2 api web
@@ -15,6 +15,9 @@ web:
 
 ingest: ## pull filings for the portfolio (30-day backfill on first run) + classify + score
 	$(PY) -m jobs.run_filings
+
+enrich: ## attach XBRL numbers to results cards (re-run with FORCE=1 to rebuild)
+	$(PY) -c "from api.pipeline.enrich_results import enrich_results; print(enrich_results(force=bool('$(FORCE)')))"
 
 eod: ## load EOD prices, compute anomalies, explain moves
 	$(PY) -m jobs.run_eod

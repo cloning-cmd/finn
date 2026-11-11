@@ -43,9 +43,13 @@ def load_fixture_cards() -> list[Card]:
     return [Card.model_validate(c) for c in json.loads(FIXTURES.read_text(encoding="utf-8"))]
 
 
+IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
+
+
 def filing_to_card(f: db.Filing) -> Card:
+    ts = f.ts if f.ts.tzinfo else f.ts.replace(tzinfo=IST)  # SQLite drops the offset; filings are stamped in IST
     return Card(id=f.id, type=f.card_type or f.category or "unclassified", ticker=f.ticker, company=f.payload.get("company", f.ticker) if f.payload else f.ticker,
-                ts=f.ts.isoformat(), tier=f.tier or "buried", priority=f.priority or 0, headline=f.headline or (f.subject or "")[:70],
+                ts=ts.isoformat(), tier=f.tier or "buried", priority=f.priority or 0, headline=f.headline or (f.subject or "")[:70],
                 one_liner=f.one_liner, payload=(f.payload or {}).get("payload", {"summary": f.subject}),
                 sources=(f.payload or {}).get("sources", []), chips=(f.payload or {}).get("chips", []))
 

@@ -1,23 +1,28 @@
 # FINN — STATE (living handoff)
 
 > Update after every task. The section "NEXT SESSION STARTS HERE" must always be accurate.
-> Last updated: 2026-11-11 21:10 IST
+> Last updated: 2026-11-12 00:40 IST
 
 ## Current phase
-Phase 1 — Push backend + app shell (started early, evening of Wed 11 Nov). Phase 0 local acceptance met;
-**deploys still pending user account steps** (see Blockers). Schedule: roughly on track again — ingestion,
-classifier, scorer, anomalies and explain-move are done a day early; results enrichment + swipe UI remain for Thu.
+Phase 1 — Push backend + app shell. Phase 0 local acceptance met; **deploys still pending user account steps**
+(see Blockers). Backend side of Phase 1 is done (ingest, classify, score, collapse, anomalies, explain, results
+numbers); the swipe UI on real data remains for Thu.
 
 ## Deadline tracker
 | Phase | Target | Status |
 | --- | --- | --- |
 | 0 De-risk + scaffold | Wed 11 Nov | local done; deploys pending accounts |
-| 1 Push backend + app shell | Thu 12 Nov | ~60% (ingest, classify, score, collapse, anomalies, explain done) |
+| 1 Push backend + app shell | Thu 12 Nov | ~75% (backend done incl. results numbers; swipe UI + deploys left) |
 | 2 Pull engine + people + push delivery (tag v0.9) | Fri 13 Nov | not started |
 | 3 Product polish, freeze 20:00 IST | Sat 14 Nov | not started |
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **Results enrichment** `api/pipeline/enrich_results.py` (2026-11-12 00:30): NSE integrated-filing XBRL → Revenue/
+  EBITDA/PBT/PAT (+ margins) or NII/PPOP/Provisions/PAT for banks and NBFCs, QoQ/YoY from the previous quarters'
+  XBRL, numeric headlines + one-liners, XBRL source + "Open XBRL" chip, 2-day filed-date guard, loss-aware copy.
+  Wired into `jobs/run_filings.py` and `make enrich`. 18/20 primary results cards on the 30-day backfill carry
+  numbers (0 LLM calls); tests `api/tests/test_results.py` on trimmed real XBRL fixtures (INFY, HDFCBANK, BAJFINANCE).
 - Ingestion: `api/ingest/nse.py` (one market-wide call per window, portfolio filter, dedupe, PDF first 3 pages via
   `documents.py`), `api/ingest/prices.py` (yfinance 400d incl. NIFTY; market-adjusted z), `jobs/seed.py`,
   `jobs/run_filings.py`, `jobs/run_eod.py`. Local DB has 262 filings (30d), 7,599 price rows, 18 anomalies.
@@ -30,14 +35,14 @@ classifier, scorer, anomalies and explain-move are done a day early; results enr
 - (none)
 
 ## Next 3 tasks
-1. **enrich_results.py** — XBRL from `/api/corporates-financial-results` (fields per DECISIONS spike), compute
-   Revenue/EBITDA/PBT/PAT + QoQ/YoY + margins in code; lender variant (HDFCBANK, BAJFINANCE); comparatives from
-   previous filings' XBRL (contexts) else screener quarterly table; attach `ResultsPayload` + headline with numbers.
-   Acceptance: ≥ 1 real results card shows all four metrics with QoQ/YoY.
-2. **Brief UI on real data** — swipe (framer-motion drag: right=noted, left=less → `POST /feedback`, toast+undo),
-   "+N related" chip, source bottom sheet (PDF link), `NEXT_PUBLIC_FIXTURE` off by default once API deployed.
-3. **Deploys + cron** — user steps below; then `.github/workflows/{filings,eod}.yml` (best-effort; NSE may block
+1. **Brief UI on real data** — point `web/` at `http://127.0.0.1:8000/brief` (env `NEXT_PUBLIC_API_URL`, fixture
+   off), check the results card renders the XBRL payload (lender variant has no margins), swipe (framer-motion
+   drag: right=noted, left=less → `POST /feedback` with ticker+category, toast+undo), "+N related" chip from
+   `payload.related_count`, source bottom sheet (XBRL + PDF links).
+2. **Deploys + cron** — user steps below; then `.github/workflows/{filings,eod}.yml` (best-effort; NSE may block
    Actions IPs → fallback is `make ingest` locally against Supabase).
+3. **Phase 2 kick-off** — cheap-LLM `one_liner` for generic "Disclosure under Reg 30" leads and the SUZLON credit
+   rating cards (LLM router + SQL cache first: `api/llm/router.py`), then the pull engine (`make research T=INFY`).
 
 ## Blockers (user actions)
 - Install GitHub CLI → `gh auth login` → tell the agent; it will `gh repo create` + push.
@@ -65,6 +70,11 @@ classifier, scorer, anomalies and explain-move are done a day early; results enr
 - Generic headlines for "Disclosure under Regulation 30…" filings → Phase 2 cheap-LLM `one_liner`.
 - `fitz` deprecation warning in `spikes/s5_pdf.py` only (prod code uses `pymupdf`).
 - Anomalies computed with default thresholds only; user rules (Phase 2) must re-run `run_anomalies` with overrides.
+- Classifier false positives into `results`: RELIANCE 27 Oct "Trading in equity shares of Jio Platforms…" and the
+  SUNPHARMA 12 Oct board-meeting outcome (both mention "financial results" in the body). The enricher rejects them
+  (XBRL not filed within 2 days) so they show generic copy, but the category/priority is still wrong → add a
+  "subsidiary results / board meeting scheduled" rule in Phase 2.
+- SQLite drops timezone on `filings.ts`; `filing_to_card` re-attaches IST. Postgres keeps it.
 
 ## Metrics to report in writeup (fill as measured)
 | Metric | Value |
@@ -74,6 +84,7 @@ classifier, scorer, anomalies and explain-move are done a day early; results enr
 | Event collapsing | 56 → 35 leads over 30 days |
 | Anomalies (raw z → market-adjusted z) | 13 → 7 price moves; 19 → 5 unexplained (10 days) |
 | ₹ per dossier (first run / cached) | — |
+| Results cards with XBRL numbers | 18 of 20 primary results filings (30 days), 0 LLM calls, 0 gaps; 2 rejected by the 2-day guard |
 | ₹ per day (push side) | ₹0 so far (no LLM calls yet) |
 | Cache hit % | — |
 | Claims dropped by verifier | — |
@@ -82,7 +93,9 @@ classifier, scorer, anomalies and explain-move are done a day early; results enr
 - Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect all green.
 - Servers: `api/.venv/Scripts/python.exe -m uvicorn api.main:app --reload --port 8000`; `cd web && npm run dev`.
   Open http://localhost:3000 (fixture) and http://127.0.0.1:8000/brief?window=7d (real).
-- If `.env` now has keys/DATABASE_URL: run migration, `make seed`, `make eod`, `make ingest` against Supabase.
-- Then Next 3 tasks #1 (`api/pipeline/enrich_results.py`). Reuse `NSEClient.financial_results()` in
-  `api/ingest/nse.py` and the XBRL tag list in DECISIONS "Spike findings". Spike script: `spikes/s6_xbrl.py`.
-- No files mid-edit. No failing tests.
+- If `.env` now has keys/DATABASE_URL: run migration, `make seed`, `make eod`, `make ingest` against Supabase
+  (`make ingest` now also runs results enrichment; `make enrich FORCE=1` rebuilds all results cards).
+- Then Next 3 tasks #1 (Brief UI on real data). Start in `web/components/cards/CardView.tsx` (Results renderer
+  already exists) and `web/app/page.tsx` (fixture toggle). Real brief: `GET /brief?window=30d` → 35 lead · 35 line ·
+  209 buried; 19 visible results cards carry XBRL payloads.
+- No files mid-edit. No failing tests (25 passed).

@@ -29,6 +29,8 @@ def main(days: int | None = None) -> None:
         print("scored:", score_pending())
     except ImportError:
         print("classify/score: pipeline not built yet")
+    from api.pipeline.enrich_results import enrich_results
+    print("results:", enrich_results())
 
 
 if __name__ == "__main__":
