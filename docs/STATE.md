@@ -127,7 +127,7 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | Classifier accuracy (labelled) | see `pytest -s api/tests/test_classify.py` (58 labelled) |
 | Event collapsing | 56 → 35 leads over 30 days |
 | Anomalies (raw z → market-adjusted z) | 13 → 7 price moves; 19 → 5 unexplained (10 days) |
-| ₹ per dossier (first run / cached) | INFY: ₹5.31 first run (122k tokens in, 37 extraction calls) / ₹0.60 rerun with 49% cache hits / ₹0 cached open. PIDILITIND: ₹2.03 first run (34k in, 9 promises from 48 mgmt chunks, 2 claims dropped) |
+| ₹ per dossier (first run / cached) | INFY: ₹5.31 first run (122k tokens in, 37 extraction calls) / ₹0.60 rerun with 49% cache hits / ₹0 cached open. PIDILITIND: ₹2.03 first run (34k in, 9 promises from 48 mgmt chunks, 2 claims dropped). POLYCAB on Render: ₹2.93 (20 promises from 68 mgmt chunks, 2 dropped) |
 | Results cards with XBRL numbers | 18 of 20 primary results filings (30 days), 0 LLM calls, 0 gaps; 2 rejected by the 2-day guard |
 | ₹ per day (push side) | ₹0 so far (no LLM calls yet) |
 | Cache hit % | — |
