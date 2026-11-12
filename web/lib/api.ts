@@ -1,6 +1,8 @@
 import type { Brief, Dossier, Rule, Alert, Claim, Source, ProgressEvent } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+// Demo-only shared secret for /admin/* (replay a day). Set NEXT_PUBLIC_ADMIN_TOKEN on Vercel to match ADMIN_TOKEN.
+export const ADMIN_TOKEN = process.env.NEXT_PUBLIC_ADMIN_TOKEN || "dev";
 
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${API_URL}${path}`, { ...init, headers: { "content-type": "application/json", ...(init?.headers || {}) } });
@@ -41,7 +43,7 @@ export async function researchStream(ticker: string, onProgress: (e: ProgressEve
   }
   if (buf.trim()) handle(buf);
   if (error) throw new Error(error);
-  if (!dossier) throw new Error("stream ended without a dossier");
+  if (!dossier) throw new Error("The build stopped before it finished: the API connection dropped or the server restarted. Retry in a minute.");
   return dossier;
 }
 
@@ -49,8 +51,13 @@ export const api = {
   brief: (window = "24h", fixture = false) => j<Brief>(`/brief?window=${window}${fixture ? "&fixture=1" : ""}`),
   feedback: (card_id: string, action: "noted" | "less", ticker?: string, category?: string) =>
     j<{ ok: boolean }>("/feedback", { method: "POST", body: JSON.stringify({ card_id, action, ticker, category }) }),
-  alerts: () => j<Alert[]>("/alerts"),
+  alerts: (limit = 50) => j<Alert[]>(`/alerts?limit=${limit}`),
+  evaluateAlerts: (hours = 26) => j<{ cards: number; rules: number; fired: number; pushed: number }>(`/alerts/evaluate?hours=${hours}`, { method: "POST" }),
   rules: () => j<Rule[]>("/rules"),
+  saveRule: (rule: Rule) => j<Rule>("/rules", { method: "POST", body: JSON.stringify(rule) }),
+  deleteRule: (id: string) => j<{ ok: boolean }>(`/rules/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  parseRule: (text: string) => j<{ rule: Rule; method: "rule" | "llm"; cost: number }>("/rules/parse", { method: "POST", body: JSON.stringify({ text }) }),
+  replay: (date: string, spacing = 3) => j<{ date: string; cards: number; queued: number }>(`/admin/replay?date=${date}&spacing=${spacing}&token=${encodeURIComponent(ADMIN_TOKEN)}`, { method: "POST" }),
   research: (ticker: string) => j<Dossier>(`/research/${encodeURIComponent(ticker)}`),
   qa: (ticker: string, question: string, card_id?: string) => j<QAResponse>("/qa", { method: "POST", body: JSON.stringify({ ticker, question, card_id }) }),
   health: () => j<{ ok: boolean; db: boolean; as_of: string }>("/health"),

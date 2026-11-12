@@ -1,5 +1,6 @@
 """Documents for the pull engine: latest annual report + last N concall transcripts (links from screener.in).
-PDF → per-page text (PyMuPDF, cached) → chunks → embeddings (fastembed bge-small, 384-d, stored as float32 bytes).
+PDF → per-page text (PyMuPDF, cached) → chunks → vectors (api.research.embed: hashed TF-IDF by default, bge-small
+when EMBED_BACKEND=fastembed; stored as float32 bytes, re-embedded lazily when the backend changes).
 
 Transcript chunking: the participant roster (page 1-3) names the speakers; each turn starts with a roster name
 on its own line (or "Name:" prefix). Turns are merged up to ~800 tokens keeping speaker + page.
@@ -16,11 +17,12 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import numpy as np
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from api import db
 from api.config import settings
 from api.ingest.documents import fetch_pdf, pdf_pages, sha256_file
+from api.research import embed
 
 log = logging.getLogger(__name__)
 TEXT_DIR = settings.data_path / "doctext"
@@ -33,26 +35,8 @@ OTHER_HEADERS = re.compile(r"^(JOU?RNALISTS|ANALYSTS|CONFERENCE CALL PARTICIPANT
 NAME_LINE = re.compile(r"^[A-Z][A-Za-z.'\-]+(?: [A-Z][A-Za-z.'\-]+){0,4}$")
 AR_HEADINGS = re.compile(r"management discussion|management's discussion|business overview|company overview|segment|our business|operating review|review of operations|business review|about the company|chairman's message|letter to shareholders", re.I)
 
-_embedder = None
-
-
-def embedder():
-    global _embedder
-    if _embedder is None:
-        from fastembed import TextEmbedding
-        _embedder = TextEmbedding("BAAI/bge-small-en-v1.5")
-    return _embedder
-
-
-def embed_texts(texts: list[str]) -> list[bytes]:
-    if not texts:
-        return []
-    vecs = list(embedder().embed(texts, batch_size=32))
-    return [np.asarray(v, dtype=np.float32).tobytes() for v in vecs]
-
-
-def embed_query(text: str) -> np.ndarray:
-    return np.asarray(list(embedder().query_embed(text))[0], dtype=np.float32)
+embed_texts = embed.embed_texts
+embed_query = embed.embed_query
 
 
 # ----------------------------------------------------------------------------- transcripts
@@ -242,27 +226,53 @@ def ingest_for_ticker(ticker: str, screener_data: dict, n_calls: int = 5, progre
 
 # ----------------------------------------------------------------------------- retrieval
 
+_ROWS: dict[str, tuple[int, list[tuple]]] = {}  # ticker -> (chunk count, rows); a build adds chunks, so the count is the key
+_ROWS_MAX = 6
+
+
+def _chunk_rows(ticker: str) -> list[tuple]:
+    """(id, text, speaker, page, period, embedding, kind, url) for every chunk of the ticker, cached per process.
+    Chunks whose stored vector came from the other embedding backend are re-embedded and saved first, so switching
+    EMBED_BACKEND needs no migration."""
+    with db.session() as s:
+        n = s.scalar(select(func.count(db.Chunk.id)).where(db.Chunk.ticker == ticker)) or 0
+        hit = _ROWS.get(ticker)
+        if hit and hit[0] == n:
+            return hit[1]
+        stmt = select(db.Chunk, db.Document.kind, db.Document.url).join(db.Document, db.Chunk.document_id == db.Document.id).where(db.Chunk.ticker == ticker)
+        rows = s.execute(stmt).all()
+        stale = [r[0] for r in rows if not embed.is_current(r[0].embedding)]
+        if stale:
+            log.info("re-embedding %d %s chunks with the %s backend", len(stale), ticker, embed.backend())
+            for c, v in zip(stale, embed_texts([c.text or "" for c in stale])):
+                c.embedding = v
+        out = [(r[0].id, r[0].text, r[0].speaker, r[0].page, r[0].period, r[0].embedding, r[1], r[2]) for r in rows]
+    if len(_ROWS) >= _ROWS_MAX:
+        _ROWS.pop(next(iter(_ROWS)))
+    _ROWS[ticker] = (n, out)
+    return out
+
 
 def search_chunks(ticker: str, query: str, k: int = 8, period: Optional[str] = None, kind: Optional[str] = None,
                   management_only: bool = False) -> list[dict]:
-    """Cosine search over the ticker's chunks (a few thousand at most) in numpy."""
+    """Cosine search over the ticker's chunks (a few thousand at most) in numpy. Chunks whose stored vector came
+    from the other embedding backend are re-embedded and saved first, so switching EMBED_BACKEND needs no migration."""
     q = embed_query(query)
-    with db.session() as s:
-        stmt = select(db.Chunk, db.Document.kind, db.Document.url).join(db.Document, db.Chunk.document_id == db.Document.id).where(db.Chunk.ticker == ticker)
-        if period:
-            stmt = stmt.where(db.Chunk.period == period)
-        if kind:
-            stmt = stmt.where(db.Document.kind == kind)
-        rows = s.execute(stmt).all()
+    rows = _chunk_rows(ticker)
+    if period:
+        rows = [r for r in rows if r[4] == period]
+    if kind:
+        rows = [r for r in rows if r[6] == kind]
     if not rows:
         return []
     if management_only:
-        rows = [r for r in rows if (r[0].speaker or "").endswith("[mgmt]") or r[1] == "ar"] or rows
-    mat = np.stack([np.frombuffer(r[0].embedding, dtype=np.float32) for r in rows])
-    sims = mat @ q / (np.linalg.norm(mat, axis=1) * np.linalg.norm(q) + 1e-9)
+        rows = [r for r in rows if (r[2] or "").endswith("[mgmt]") or r[6] == "ar"] or rows
+    sims = embed.similarities(embed.stack(r[5] for r in rows), q)
+    # a two-line "next question is from…" chunk can match a keyword query as well as a real answer; damp it
+    sims = sims * np.array([min(1.0, len(r[1] or "") / 300.0) for r in rows], dtype=np.float32)
     top = np.argsort(-sims)[:k]
-    return [{"id": rows[i][0].id, "text": rows[i][0].text, "speaker": rows[i][0].speaker, "page": rows[i][0].page, "period": rows[i][0].period,
-             "kind": rows[i][1], "url": rows[i][2], "score": float(sims[i])} for i in top]
+    return [{"id": rows[i][0], "text": rows[i][1], "speaker": rows[i][2], "page": rows[i][3], "period": rows[i][4],
+             "kind": rows[i][6], "url": rows[i][7], "score": float(sims[i])} for i in top]
 
 
 def chunks_for(ticker: str, kind: Optional[str] = None, management_only: bool = False) -> list[dict]:

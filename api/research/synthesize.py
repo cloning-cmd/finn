@@ -47,8 +47,10 @@ def _ledger_text(promises: list[PromiseRec]) -> str:
 
 
 def pick_chunks(ticker: str, k_each: int = 4) -> list[dict]:
-    qs = ["what the company does and its main business segments", "revenue share by segment", "outlook and guidance for the coming year",
-          "key risks and headwinds", "growth drivers and opportunities", "capital allocation, capex and debt"]
+    # keyword-style queries: retrieval is lexical (hashed TF-IDF) unless EMBED_BACKEND=fastembed
+    qs = ["business segments products services customers overview", "segment revenue share mix contribution",
+          "outlook guidance growth margin next year fiscal", "risks headwinds pressure challenges uncertainty",
+          "growth drivers demand opportunities expansion new", "capex capital allocation debt dividend buyback cash"]
     seen: dict[str, dict] = {}
     for q in qs:
         for h in docs.search_chunks(ticker, q, k=k_each, management_only=True):

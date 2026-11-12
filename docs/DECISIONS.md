@@ -209,3 +209,23 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - Headline template: "{T} Q2 FY27: rev ₹49,244 Cr +10.7% YoY, PAT ₹7,838 Cr +6.3%" (falls back to %-only, then
   PAT-only, to stay ≤ 70). One-liner: EBITDA margin + bps deltas (or PPOP for lenders). Indian digit grouping.
 - Result on the 30-day backfill: 18 of 20 primary results filings enriched, 0 LLM calls, 0 gaps; 2 correctly rejected.
+
+## 2026-11-13 (04:30) — Chunk retrieval: hashed TF-IDF by default, fastembed opt-in
+- Finding: Render's free instance (512 MiB) was OOM-killed four times on 12 Nov, every time during a research
+  build (`server_failed … oomKilled memoryLimit 512Mi` in the service events, right after fastembed's "Fetching 5
+  files" from the HF Hub). Measured locally: process after `import litellm` = 217 MB, after the bge-small ONNX load
+  = 413 MB, after embedding one batch = 684 MB. The POST /research stream then just ends with no error event, which
+  the web app showed as "stream ended without a dossier".
+- Decision: `EMBED_BACKEND=hash` (default) replaces runtime embeddings with hashed TF vectors (unigrams + bigrams,
+  stop words removed, sublinear TF, 1024 dims, crc32 sign hashing) and applies IDF from the ticker's own chunk
+  matrix at query time in numpy. `EMBED_BACKEND=fastembed` keeps bge-small for machines with memory. Vectors are
+  recognised by length, so chunks written by the other backend are re-embedded lazily on first search (no
+  migration; INFY's 2k chunks took 5 s). Chunk rows are cached per ticker in-process (keyed by chunk count).
+  Synthesis retrieval queries were rewritten as keyword queries; chunks under 300 chars are damped so moderator
+  lines ("the next question is from…") stop outranking answers.
+- Why: thin-but-working. Retrieval here feeds a quote verifier and a code-only promise matcher; lexical recall is
+  enough for that, and the deployed demo must survive a fresh ticker. The CLAUDE.md stack line ("embeddings via
+  fastembed") is now the opt-in path.
+- Rejected: Gemini embeddings API (free tier ~30k tokens/min → a 450k-token annual report takes 15 min);
+  a paid Render plan (user's call, and the dependency on a 70 MB model download at every cold start would stay);
+  running builds only in GitHub Actions (minutes of latency for the grader's first ticker).

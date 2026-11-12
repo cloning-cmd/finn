@@ -1,23 +1,34 @@
 # FINN — STATE (living handoff)
 
 > Update after every task. The section "NEXT SESSION STARTS HERE" must always be accurate.
-> Last updated: 2026-11-12 11:40 IST
+> Last updated: 2026-11-13 04:40 IST
 
 ## Current phase
-Phase 2 — Pull engine + people + push delivery. Phase 1 local acceptance met (real ranked brief, results cards
-with XBRL numbers, swipe UI on real data); **deploys still pending user keys** (see Blockers). Pull engine backend
-and the Research screen are built and run end-to-end locally in numbers-only mode (no LLM keys yet).
+Phase 2 — Pull engine + people + push delivery. Deployed: web on Vercel, API on Render (free, 512 MiB), DB on
+Supabase. Research builds with Gemini 3.x end to end (INFY, PIDILITIND). Rules, alerts inbox, Web Push and replay
+are built and committed. Left in Phase 2: people enrichment (bio from filing), cheap-LLM one-liners.
 
 ## Deadline tracker
 | Phase | Target | Status |
 | --- | --- | --- |
 | 0 De-risk + scaffold | Wed 11 Nov | local done; deploys pending accounts |
 | 1 Push backend + app shell | Thu 12 Nov | local done; deploys pending keys |
-| 2 Pull engine + people + push delivery (tag v0.9) | Fri 13 Nov | ~50% (research backend + screen done; LLM sections, people, push, rules left) |
+| 2 Pull engine + people + push delivery (tag v0.9) | Fri 13 Nov | ~85% (research + LLM sections, rules, alerts, push, replay done; people left) |
 | 3 Product polish, freeze 20:00 IST | Sat 14 Nov | not started |
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **Research on Render fixed** (2026-11-13 04:40): the deployed API was OOM-killed (512 MiB) on every fresh
+  research build while loading the fastembed model (measured 684 MB peak locally). New `api/research/embed.py`:
+  `EMBED_BACKEND=hash` (default) = hashed TF-IDF in numpy, no model; `fastembed` opt-in. Stale vectors re-embed
+  lazily on first search; per-ticker chunk cache; keyword synthesis queries; short-chunk damping. The web client now
+  says "build stopped before it finished… retry" when a stream ends without a dossier. 37 tests pass.
+  Also killed the stale 11 Nov uvicorn (PID 28484) that returned 404 for `/research` locally.
+- **Rules + alerts + push + replay** (2026-11-13 04:00, commit be655be): `/rules` CRUD, `/rules/parse` (regex →
+  cheap LLM, ₹0.03), `/alerts`, `/alerts/evaluate` (also run at the end of `run_filings`/`run_eod`), `/push/*`
+  (VAPID via pywebpush, `sw.js` shows notifications), `/admin/replay?date=` fires a past day's alerts with spacing.
+  Rules screen (sliders, category chips, plain-English box, notifications toggle) and Alerts screen (by day, Demo
+  replay). Verified locally: parse both paths, evaluate over 283 cards, 3 default rules seeded, push key served.
 - **Deploy tooling** (2026-11-12 11:40, commit 6512099): `jobs/deploy.py` (`make deploy`) does repo create + push,
   Actions secrets/variables, Render service `finn-api`, Vercel link + env + prod deploy from the tokens in `.env`.
   The agent's sandbox is not allowed to create repos / upload, so **the user runs it**. Workflows
@@ -53,15 +64,16 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 - (none)
 
 ## Next 3 tasks
-1. **Dossier quality on Gemini 3.x**: review the INFY ledger (promises, quote verification, statuses),
-   verdict/bull/bear, cost receipt; then BAJFINANCE, POLYCAB, PIDILITIND, TATAPOWER + 1 unseen; fix prompt/verify
-   issues; record ₹ per dossier. Then cheap-LLM `one_liner` for generic "Disclosure under Reg 30" leads and the
+1. **Confirm the Render fix**: after `git push`, wait for the Render deploy, then POST `/research/POLYCAB` on
+   https://finn-api-3bj2.onrender.com and watch the service events for `oomKilled`. Then build BAJFINANCE,
+   TATAPOWER + 1 unseen ticker from the Vercel app; review ledgers/verdicts; record ₹ per dossier.
+2. **People enrichment** (`api/pipeline/enrich_people.py`): cheap-LLM `people_extract` on management-change
+   filings → `PeoplePayload` (name, role, change, effective date, bio lines from the filing text + prior roles);
+   people card variant in the Brief. Then cheap-LLM `one_liner` for generic "Disclosure under Reg 30" leads and the
    SUZLON credit-rating cards.
-2. **Deploys** (user runs `make deploy` after putting the Supabase pooled URL in `DATABASE_URL`): then
-   `make seed`, `make eod`, `make ingest` against Supabase; record URLs below; trigger both workflows once via
-   workflow_dispatch and confirm NSE is reachable from Actions runners (BSE fallback otherwise).
-3. **People + push + rules**: people enrichment (bio from filing), Web Push subscribe + VAPID send, rules CRUD +
-   NL rule parsing, Rules screen, Alerts screen + replay a day.
+3. **Push delivery check on the phone**: Vercel app → Rules → Enable (iOS needs Add to Home Screen first); fire
+   `/admin/replay` for 12 Nov from the Alerts Demo control and confirm notifications arrive; trigger both Actions
+   workflows once via workflow_dispatch and confirm NSE is reachable from the runners (BSE fallback otherwise).
 
 ## Blockers (user actions)
 - `.env`: Gemini key + GitHub/Vercel/Render tokens are in (verified 12 Nov). **`DATABASE_URL` is still SQLite** →
@@ -69,16 +81,15 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
   created by the API on startup (`init_db`), so the SQL migration is optional.
 - Run `make deploy` (the sandbox is blocked from creating repos / uploading). If Render says the repo is not
   accessible, install the Render GitHub app on the repo and re-run `make deploy S="render vercel"`.
-- A stale API server from an earlier session (PID 28484, started before the research router existed) still holds
-  port 8000, so the web app's `/research` gets 404 from it. Stop it (close that terminal or
-  `taskkill /PID 28484 /F`) and restart `uvicorn api.main:app --reload --port 8000`.
+- Vercel needs `NEXT_PUBLIC_ADMIN_TOKEN` (= the API's `ADMIN_TOKEN`) for the Alerts "Demo → Replay a day" control;
+  without it the replay call uses the dev default and Render returns 401.
 - Tavily key (optional) for bios.
 
 ## Live URLs & env status
 | Item | Value / status |
 | --- | --- |
 | GitHub repo | https://github.com/cloning-cmd/finn (private; Actions secrets + variables set 12 Nov) |
-| Web (Vercel) | not deployed |
+| Web (Vercel) | https://finn-six-bay.vercel.app (project `finn`, prod alias, public; deployed 12 Nov via `jobs/deploy.py vercel`). Per-deployment `finn-xxxx-….vercel.app` URLs sit behind Vercel login; always share the alias |
 | API host (Render) | https://finn-api-3bj2.onrender.com (service `finn-api`, Singapore, free plan; created 12 Nov) |
 | Supabase project | exists; migration not run; URL not in .env |
 | Cheap / strong LLM keys | Gemini key in `.env`; models `gemini-3.5-flash-lite` / `gemini-3.5-flash` |
@@ -87,6 +98,10 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 | Local | API `http://127.0.0.1:8000` · web `http://localhost:3000` · DB `data/finn.db` |
 
 ## Known issues
+- Retrieval is lexical by default (`EMBED_BACKEND=hash`); Q&A phrased without the document's words can miss. Set
+  `EMBED_BACKEND=fastembed` on a host with ≥ 1 GB for semantic recall (chunks re-embed lazily).
+- Render free instance sleeps after 15 min idle; the first request takes ~50 s. The research screen shows the
+  progress log meanwhile, but the Brief's first load is a blank skeleton for that long.
 - Unknown ticker over SSE takes ~40 s to fail (screener retries) before the error event; UI shows the log meanwhile.
 - Two "SUZLON: Credit Rating" leads (no detail in subject) → cheap-LLM one-liner (task 1).
 - Generic headlines for "Disclosure under Regulation 30…" filings → cheap-LLM `one_liner` (task 1).
@@ -103,17 +118,18 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 | Classifier accuracy (labelled) | see `pytest -s api/tests/test_classify.py` (58 labelled) |
 | Event collapsing | 56 → 35 leads over 30 days |
 | Anomalies (raw z → market-adjusted z) | 13 → 7 price moves; 19 → 5 unexplained (10 days) |
-| ₹ per dossier (first run / cached) | INFY: ₹5.31 first run (122k tokens in, 37 extraction calls) / ₹0.60 rerun with 49% cache hits / ₹0 cached open |
+| ₹ per dossier (first run / cached) | INFY: ₹5.31 first run (122k tokens in, 37 extraction calls) / ₹0.60 rerun with 49% cache hits / ₹0 cached open. PIDILITIND: ₹2.03 first run (34k in, 9 promises from 48 mgmt chunks, 2 claims dropped) |
 | Results cards with XBRL numbers | 18 of 20 primary results filings (30 days), 0 LLM calls, 0 gaps; 2 rejected by the 2-day guard |
 | ₹ per day (push side) | ₹0 so far (no LLM calls yet) |
 | Cache hit % | — |
 | Claims dropped by verifier | INFY synthesis: 2 of ~12 claims dropped (unverified number/quote) |
 
 ## NEXT SESSION STARTS HERE
-- Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect 34 passed.
-- Servers: `api/.venv/Scripts/python.exe -m uvicorn api.main:app --reload --port 8000` (stop the stale PID 28484
-  first); `cd web && npm run dev`. Open http://localhost:3000/research?t=INFY (cached dossier renders) and try
-  PIDILITIND (streams a fresh build).
-- Check `.env` `DATABASE_URL`: if Postgres and `make deploy` was run → verify URLs, fill Live URLs. Otherwise
-  continue Next task 1 (dossier quality) and task 3 (people/push/rules).
-- No files mid-edit. No failing tests.
+- Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect 37 passed.
+- Servers: `api/.venv/Scripts/python.exe -m uvicorn api.main:app --reload --port 8000`; `cd web && npm run dev`.
+  Open http://localhost:3000/research?t=PIDILITIND (cached), /rules, /alerts.
+- Deployed check (Next task 1): `curl -N -X POST https://finn-api-3bj2.onrender.com/research/POLYCAB` must end
+  with an `event: dossier`, not a silent close. Render events: scratch script pattern in this session was
+  `GET /v1/services?name=finn-api` → `/services/{id}/events`; `oomKilled` means the hash backend is not active
+  (check `EMBED_BACKEND` is unset or `hash` on Render).
+- Then Next task 2 (people enrichment). No files mid-edit. No failing tests.

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
 
     tavily_api_key: str = ""
 
+    # Chunk retrieval: "hash" (model-free hashed TF-IDF, fits a 512 MB host) or "fastembed" (bge-small ONNX, ~430 MB).
+    embed_backend: str = "hash"
+
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:finn@example.com"

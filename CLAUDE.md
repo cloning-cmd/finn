@@ -20,7 +20,7 @@ Full spec: `FINN_MASTER_PROMPT.md` (repo root). Progress: `docs/STATE.md`. Decis
 
 ## Stack (as built — see DECISIONS for deltas from the master prompt)
 Next.js 15 PWA (web/) on Vercel · FastAPI (api/, Python 3.12, venv at api/.venv) · SQLAlchemy 2 with
-`DATABASE_URL` (SQLite locally, Supabase Postgres in prod) · embeddings via fastembed (bge-small, ONNX) with
+`DATABASE_URL` (SQLite locally, Supabase Postgres in prod) · chunk retrieval via hashed TF-IDF in numpy (`EMBED_BACKEND=hash`, default; `fastembed` bge-small opt-in) with
 cosine search in numpy · GitHub Actions cron (jobs/) · LiteLLM router with SQL cache · PyMuPDF/pdfplumber ·
 yfinance · NSE API (BSE fallback) · screener.in.
 
