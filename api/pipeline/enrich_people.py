@@ -283,7 +283,8 @@ def enrich_filing(f: db.Filing, company: str) -> Optional[dict]:
     f.one_liner = one_liner_for(p)
     if "top role" in p.flags and base < 60:
         f.priority = min(70.0, base + 15)  # a CEO/MD/CFO/chair change is never buried by the generic scorer
-        f.tier = tier_for(f.priority)
+        if not payload.get("collapsed_into"):  # a duplicate of another filing stays buried under its primary
+            f.tier = tier_for(f.priority)
     return {"name": primary.name, "role": primary.role, "change": primary.change, "lines": len(p.incoming.bio_lines) if p.incoming else 0,
             "cost": meta["cost_inr"], "cached": meta["cached"]}
 
