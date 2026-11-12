@@ -11,6 +11,12 @@ const STATUS_CLASS: Record<PromiseStatus, string> = {
 const STATUS_TEXT: Record<PromiseStatus, string> = {
   kept: "text-up", on_track: "text-accent", missed: "text-down", revised_down: "text-warn", quietly_dropped: "text-down", too_early: "text-muted",
 };
+const METRIC_LABEL: Record<string, string> = {
+  revenue_growth: "Revenue growth", ebitda_margin: "Operating margin", pat: "Profit", capex: "Capex", net_debt: "Net debt",
+  order_book: "Order book", capacity: "Capacity", launch: "Launches", headcount: "Hiring", tax_rate: "Tax rate", payout: "Payout",
+  attrition: "Attrition", onsite_mix: "Onsite mix", other: "Other",
+};
+const METRIC_ORDER = ["revenue_growth", "ebitda_margin", "pat", "capex", "net_debt", "order_book", "capacity", "headcount", "tax_rate", "payout"];
 const ORDER: PromiseStatus[] = ["kept", "on_track", "missed", "revised_down", "quietly_dropped", "too_early"];
 
 function Dot({ status, hollow = false }: { status: PromiseStatus; hollow?: boolean }) {
@@ -23,6 +29,10 @@ export default function Ledger({ ledger, sources, onOpen }: {
   sources: Source[]; onOpen: OpenSources;
 }) {
   const total = ledger.promises.length;
+  // One group per metric; hard promises first, newest call first inside a group.
+  const groups = Object.entries(ledger.promises.reduce<Record<string, PromiseRec[]>>((acc, p) => { (acc[p.metric] ||= []).push(p); return acc; }, {}))
+    .map(([m, items]) => [m, [...items].sort((a, b) => Number(b.hard) - Number(a.hard) || b.said_in.localeCompare(a.said_in))] as [string, PromiseRec[]])
+    .sort((a, b) => (METRIC_ORDER.indexOf(a[0]) + 1 || 99) - (METRIC_ORDER.indexOf(b[0]) + 1 || 99) || b[1].length - a[1].length);
   const open = (p: PromiseRec) => {
     const srcs: Source[] = [{ ...p.source, label: `${p.speaker ? p.speaker + " · " : ""}${p.said_in}`, quote: p.quote }];
     if (p.actual_source) srcs.push({ ...p.actual_source, label: `Actual: ${p.actual_source.label}` });
@@ -43,8 +53,14 @@ export default function Ledger({ ledger, sources, onOpen }: {
       )}
       {total === 0 && <p className="mt-2 text-[12.5px] text-muted">No quantified guidance found in the transcripts on file.</p>}
 
-      <ul className="mt-3 space-y-2">
-        {ledger.promises.map((p) => (
+      {groups.map(([metric, items]) => (
+      <div key={metric} className="mt-3">
+        <h3 className="mb-1.5 flex items-baseline gap-2 text-[11px] uppercase tracking-wide text-muted">
+          <span>{METRIC_LABEL[metric] ?? metric.replace(/_/g, " ")}</span>
+          <span className="tabular normal-case">{items.length}</span>
+        </h3>
+      <ul className="space-y-2">
+        {items.map((p) => (
           <li key={p.id}>
             <button onClick={() => open(p)} className="w-full rounded-xl border border-line bg-card px-3 py-2.5 text-left">
               <div className="flex items-baseline gap-2">
@@ -71,6 +87,8 @@ export default function Ledger({ ledger, sources, onOpen }: {
           </li>
         ))}
       </ul>
+      </div>
+      ))}
       {ledger.narrative.length > 0 && <div className="mt-3"><ClaimList claims={ledger.narrative} sources={sources} onOpen={onOpen} /></div>}
     </section>
   );
