@@ -48,7 +48,7 @@ def answer(ticker: str, question: str, k: int = 8) -> dict:
     pool = table_number_pool(tables)
     task = "qa_strong" if ESCALATE.search(question) else "qa"
     try:
-        out, meta = router.call(task, PROMPT_VERSION, prompt, QAOut, max_tokens=900)
+        out, meta = router.call(task, PROMPT_VERSION, prompt, QAOut, max_tokens=2000)
     except router.LLMUnavailable as e:
         return {"claims": [], "sources": [], "model": None, "cost": 0.0, "gaps": [str(e)]}
     kept, dropped, _ = verify_claims([Claim(text=c.text, source_ids=c.source_ids) for c in out.claims], source_texts, pool)
@@ -56,7 +56,7 @@ def answer(ticker: str, question: str, k: int = 8) -> dict:
     model = meta["model"]
     if task == "qa" and len(kept) < 2 and chunks:
         try:
-            out2, meta2 = router.call("qa_strong", PROMPT_VERSION, prompt, QAOut, max_tokens=900)
+            out2, meta2 = router.call("qa_strong", PROMPT_VERSION, prompt, QAOut, max_tokens=2000)
             kept2, dropped2, _ = verify_claims([Claim(text=c.text, source_ids=c.source_ids) for c in out2.claims], source_texts, pool)
             if len(kept2) > len(kept):
                 kept, dropped, cost, model = kept2, dropped2, cost + meta2["cost_inr"], meta2["model"]

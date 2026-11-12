@@ -65,7 +65,7 @@ def synthesize(ticker: str, name: str, tables: dict, promises: list[PromiseRec],
               .replace("{{ledger}}", _ledger_text(promises)).replace("{{chunks}}", chunk_text))
     empty = {"verdict": [], "snapshot_what": [], "segments": [], "ledger_narrative": [], "soft_statuses": {}, "bull": [], "bear": [], "dropped": 0, "drop_reasons": []}
     try:
-        out, meta = router.call("synthesize", PROMPT_VERSION, prompt, SynthOut, max_tokens=2500)
+        out, meta = router.call("synthesize", PROMPT_VERSION, prompt, SynthOut, max_tokens=6000)
     except router.LLMUnavailable as e:
         gaps.append(f"synthesis unavailable: {e}")
         return empty, {"inr": 0.0, "tokens_in": 0, "tokens_out": 0, "cached": 0, "calls": 0, "models": []}, gaps

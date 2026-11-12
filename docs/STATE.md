@@ -79,7 +79,7 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 | --- | --- |
 | GitHub repo | https://github.com/cloning-cmd/finn (private; Actions secrets + variables set 12 Nov) |
 | Web (Vercel) | not deployed |
-| API host (Render) | not deployed; `jobs/deploy.py` + `render.yaml` ready |
+| API host (Render) | https://finn-api-3bj2.onrender.com (service `finn-api`, Singapore, free plan; created 12 Nov) |
 | Supabase project | exists; migration not run; URL not in .env |
 | Cheap / strong LLM keys | Gemini key in `.env`; models `gemini-3.5-flash-lite` / `gemini-3.5-flash` |
 | Web search API key | none |
@@ -103,11 +103,11 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 | Classifier accuracy (labelled) | see `pytest -s api/tests/test_classify.py` (58 labelled) |
 | Event collapsing | 56 → 35 leads over 30 days |
 | Anomalies (raw z → market-adjusted z) | 13 → 7 price moves; 19 → 5 unexplained (10 days) |
-| ₹ per dossier (first run / cached) | ₹0 numbers-only (no keys yet) / — |
+| ₹ per dossier (first run / cached) | INFY: ₹5.31 first run (122k tokens in, 37 extraction calls) / ₹0.60 rerun with 49% cache hits / ₹0 cached open |
 | Results cards with XBRL numbers | 18 of 20 primary results filings (30 days), 0 LLM calls, 0 gaps; 2 rejected by the 2-day guard |
 | ₹ per day (push side) | ₹0 so far (no LLM calls yet) |
 | Cache hit % | — |
-| Claims dropped by verifier | — |
+| Claims dropped by verifier | INFY synthesis: 2 of ~12 claims dropped (unverified number/quote) |
 
 ## NEXT SESSION STARTS HERE
 - Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect 34 passed.

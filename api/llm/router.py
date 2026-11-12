@@ -24,6 +24,10 @@ T = TypeVar("T", bound=BaseModel)
 PROVIDER_KEYS = {"gemini": "gemini_api_key", "groq": "groq_api_key", "anthropic": "anthropic_api_key", "openai": "openai_api_key"}
 
 
+class TruncatedOutput(RuntimeError):
+    """The model stopped on max_tokens; the JSON is incomplete. Retried once with a larger budget."""
+
+
 class LLMUnavailable(RuntimeError):
     """No configured provider could answer. Callers degrade (gaps[]) instead of inventing."""
 
@@ -69,6 +73,8 @@ def _complete(model: str, messages: list[dict], max_tokens: int, temperature: fl
     import time as _t
     try:
         return _complete_once(model, messages, max_tokens, temperature)
+    except TruncatedOutput:
+        return _complete_once(model, messages, max_tokens * 2, temperature)
     except Exception as e:  # noqa: BLE001
         if not _retryable(e):
             raise
@@ -79,11 +85,15 @@ def _complete(model: str, messages: list[dict], max_tokens: int, temperature: fl
 def _complete_once(model: str, messages: list[dict], max_tokens: int, temperature: float) -> tuple[str, int, int, float]:
     import litellm
     litellm.drop_params = True
-    kwargs: dict = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature, "timeout": 90}
+    kwargs: dict = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature, "timeout": 120}
     if not model.startswith("anthropic/"):
         kwargs["response_format"] = {"type": "json_object"}
+    if model.startswith("gemini/"):
+        kwargs["reasoning_effort"] = "low"  # thinking models: keep the hidden reasoning budget small, output budget for JSON
     r = litellm.completion(**kwargs)
     text = r.choices[0].message.content or ""
+    if getattr(r.choices[0], "finish_reason", None) == "length":
+        raise TruncatedOutput(f"{model} hit max_tokens={max_tokens} ({len(text)} chars returned)")
     usage = getattr(r, "usage", None)
     tin = int(getattr(usage, "prompt_tokens", 0) or 0)
     tout = int(getattr(usage, "completion_tokens", 0) or 0)

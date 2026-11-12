@@ -134,7 +134,7 @@ def extract_promises(ticker: str, chunks: list[dict], progress=None) -> tuple[li
         if progress and bi % 5 == 0:
             progress("guidance", "start", f"batch {bi + 1}/{len(batches)}")
         try:
-            res, meta = router.call("guidance_extract", PROMPT_VERSION, _render(batch), GuidanceOut, max_tokens=1500)
+            res, meta = router.call("guidance_extract", PROMPT_VERSION, _render(batch), GuidanceOut, max_tokens=3000)
         except router.LLMUnavailable as e:
             gaps.append(f"guidance extraction unavailable: {e}")
             break
@@ -277,6 +277,20 @@ def _same_horizon(p: PromiseRec, q: PromiseRec) -> bool:
     return a == b or b == "unspecified" or a == "unspecified"
 
 
+def _comparable(p: PromiseRec, q: PromiseRec) -> bool:
+    """Same commitment, not merely the same metric: bands within 2× of each other (20,000 graduates vs 6,000
+    engineers are both 'headcount' but different promises). Soft q (no band) is comparable."""
+    plo, phi = _band(p)
+    qlo, qhi = _band(q)
+    if plo is None or qlo is None:
+        return True
+    pm, qm = (plo + phi) / 2, (qlo + qhi) / 2
+    if pm == 0 or qm == 0:
+        return abs(pm - qm) < 1
+    r = qm / pm
+    return 0.5 <= r <= 2.0
+
+
 def _stance_from(p: PromiseRec, q: PromiseRec) -> str:
     plo, phi = _band(p)
     qlo, qhi = _band(q)
@@ -301,7 +315,7 @@ def later_mentions(ticker: str, promises: list[PromiseRec], call_periods: list[s
         later = [c for c in ordered if period_date(c) > period_date(p.said_in)]
         mentions: list[LaterMention] = []
         for call in later:
-            same = [q for q in by_call.get(call, []) if q.metric == p.metric and _same_horizon(p, q)]
+            same = [q for q in by_call.get(call, []) if q.metric == p.metric and _same_horizon(p, q) and _comparable(p, q)]
             if same:
                 hard_same = [q for q in same if _band(q)[0] is not None] or same
                 stances = {_stance_from(p, q) for q in hard_same}
