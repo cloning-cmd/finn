@@ -18,6 +18,15 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **People enrichment** (2026-11-13 05:10): `api/pipeline/enrich_people.py` + prompt `people_extract.md` v1. Cheap
+  model locates name / role / change / verbatim profile lines / prior roles / replaced person; code verifies every
+  line against the filing text (rapidfuzz ≥ 85, numbers must match), parses the effective date, picks the most
+  senior change (a courtesy "Emeritus" title never wins over the departure), pairs incoming/outgoing, writes the
+  ≤ 70-char headline (senior clause, then CEO/CFO/MD/CISO abbreviations) and one-liner, flags `top role` /
+  `immediate effect` / `no successor named` / `no profile in filing` / `interim`, bumps top-role changes to
+  priority ≥ 57 idempotently (`people.base_priority`). Optional Tavily snippet (one line, domain-labelled, never
+  LinkedIn). Runs at the end of `run_filings`; `make people`. 15 of 16 local filings enriched for ₹0.89 (one .zip
+  attachment skipped); 3 cards carry 3 verified bio lines each. 41 tests pass.
 - **Research on Render fixed** (2026-11-13 04:40): the deployed API was OOM-killed (512 MiB) on every fresh
   research build while loading the fastembed model (measured 684 MB peak locally). New `api/research/embed.py`:
   `EMBED_BACKEND=hash` (default) = hashed TF-IDF in numpy, no model; `fastembed` opt-in. Stale vectors re-embed
@@ -67,10 +76,9 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 1. **Confirm the Render fix**: after `git push`, wait for the Render deploy, then POST `/research/POLYCAB` on
    https://finn-api-3bj2.onrender.com and watch the service events for `oomKilled`. Then build BAJFINANCE,
    TATAPOWER + 1 unseen ticker from the Vercel app; review ledgers/verdicts; record ₹ per dossier.
-2. **People enrichment** (`api/pipeline/enrich_people.py`): cheap-LLM `people_extract` on management-change
-   filings → `PeoplePayload` (name, role, change, effective date, bio lines from the filing text + prior roles);
-   people card variant in the Brief. Then cheap-LLM `one_liner` for generic "Disclosure under Reg 30" leads and the
-   SUZLON credit-rating cards.
+2. **Cheap-LLM `one_liner`** for generic "Disclosure under Reg 30" leads and the SUZLON credit-rating cards (same
+   pattern as `enrich_people`: model locates, code verifies). Then check the People card in the Brief on real data
+   (HDFCBANK 17 Oct, DIXON 30 Oct) and the `.zip` attachment case (TRENT 19 Oct: unzip first PDF).
 3. **Push delivery check on the phone**: Vercel app → Rules → Enable (iOS needs Add to Home Screen first); fire
    `/admin/replay` for 12 Nov from the Alerts Demo control and confirm notifications arrive; trigger both Actions
    workflows once via workflow_dispatch and confirm NSE is reachable from the runners (BSE fallback otherwise).
@@ -125,7 +133,10 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | Claims dropped by verifier | INFY synthesis: 2 of ~12 claims dropped (unverified number/quote) |
 
 ## NEXT SESSION STARTS HERE
-- Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect 37 passed.
+- **First: push.** `git push` is blocked for the agent (sandbox) and the box's git login is not the repo owner; the
+  user runs `make deploy S=repo` (token push) or pushes from their own machine. Render + Vercel redeploy on push.
+  Unpushed commits as of 05:10: be655be (rules/alerts/push), 9275f72 (hash retrieval), + people enrichment.
+- Sanity: `PYTHONUTF8=1 api/.venv/Scripts/python.exe -m pytest api/tests -q` → expect 41 passed.
 - Servers: `api/.venv/Scripts/python.exe -m uvicorn api.main:app --reload --port 8000`; `cd web && npm run dev`.
   Open http://localhost:3000/research?t=PIDILITIND (cached), /rules, /alerts.
 - Deployed check (Next task 1): `curl -N -X POST https://finn-api-3bj2.onrender.com/research/POLYCAB` must end

@@ -48,3 +48,6 @@ spikes:
 
 deploy: ## create GitHub repo + push, set Actions secrets, deploy Render API + Vercel web (tokens from .env). Subset: make deploy S="render vercel"
 	$(PY) -m jobs.deploy $(S)
+
+people: ## bios from management-change filings (re-run with FORCE=1 to rebuild)
+	$(PY) -c "from api.pipeline.enrich_people import enrich_people; print(enrich_people(force=bool('$(FORCE)')))"

@@ -31,6 +31,8 @@ def main(days: int | None = None) -> None:
         print("classify/score: pipeline not built yet")
     from api.pipeline.enrich_results import enrich_results
     print("results:", enrich_results())
+    from api.pipeline.enrich_people import enrich_people
+    print("people:", enrich_people())
     from api.pipeline.alerts import evaluate
     print("alerts:", evaluate())
 
