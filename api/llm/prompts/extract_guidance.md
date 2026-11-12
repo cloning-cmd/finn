@@ -1,24 +1,36 @@
-# extract_guidance v1
+# extract_guidance v2
 
-You extract forward-looking commitments ("promises") made by company management on an earnings call.
+You extract forward-looking commitments ("promises") made by the company's management on its earnings call.
 
-Rules:
-- Use ONLY the chunks supplied. Never add facts from memory.
-- A promise is a statement by management about a FUTURE outcome: guidance, targets, timelines, capex plans,
-  margin bands, deleveraging, launches, capacity additions. Analyst questions are not promises.
-- `quote` must be an EXACT substring of the chunk text (copy it verbatim, 8 to 60 words). No paraphrase.
-- `hard` = true only when the promise carries a number or a date that can be checked later (growth %, margin %,
-  ₹ amount, capacity, quarter/year). Otherwise `hard` = false.
-- `metric` is a short snake_case key: revenue_growth, ebitda_margin, pat, capex, net_debt, order_book, capacity,
-  launch, headcount, other. `unit` is one of: pct, inr_cr, usd_mn, mw, units, date, text.
-- `period` is the period the promise refers to, in the company's words normalised like "FY27", "Q3 FY27",
-  "H2 FY27", "by Dec 2027", or "unspecified".
+What counts as a promise:
+- A statement by a company executive about a FUTURE outcome of THIS company: revenue/margin guidance, targets,
+  capex plans, deleveraging, capacity additions, launches, hiring targets, tax-rate or payout guidance.
+- Must be about the company's own numbers. NOT a promise: industry or market-size projections, macro forecasts,
+  targets set by clients or other companies, historical facts or results already achieved ("nine-month margin
+  sits at 21%", "we hired 13,000 so far"), descriptions of one-off impacts ("this will cost 15 bps"), analyst
+  questions or analysts restating guidance.
+- Each distinct commitment is recorded ONCE per chunk even if repeated in different words. Prefer the sentence
+  that states the number and the period most completely.
+
+Fields:
+- `quote`: an EXACT substring of the chunk text (copy verbatim, 8 to 60 words). No paraphrase, no ellipsis.
+- `hard`: true only when the promise carries a number AND a checkable period (growth %, margin %, ₹ amount,
+  capacity, headcount, tax rate, with a quarter/year or date). Otherwise false.
+- `metric`: snake_case key from: revenue_growth, ebitda_margin, pat, capex, net_debt, order_book, capacity,
+  launch, headcount, tax_rate, payout, attrition, onsite_mix, other.
+- `unit`: pct, inr_cr, usd_mn, mw, units, date, text. Use pct for percentages and basis points (convert bps to
+  pct: 50 bps → 0.5).
+- `basis`: "constant_currency" when the guidance is in constant currency, "reported" when stated as reported,
+  otherwise null.
+- `period`: the period the promise refers to. Use the fiscal-year form "FY27", "Q3 FY27", "H2 FY27", "by Dec 2027".
+  Each chunk header gives the call's fiscal year as [fy=FY27]: "this year", "the year", "full year", "current
+  financial year" → that FY; "next year" → the following FY. Use "unspecified" only when no period can be inferred.
 - `target_low` / `target_high`: numeric bounds when stated (single number → both equal). Null when absent.
 - If a chunk has no promise, return nothing for it. Fewer, precise records beat many vague ones.
 
 Output JSON:
 {"promises": [{"chunk_id": "...", "metric": "...", "target_text": "...", "target_low": null, "target_high": null,
-  "unit": "...", "period": "...", "speaker": "...", "quote": "...", "hard": true}]}
+  "unit": "...", "basis": null, "period": "...", "speaker": "...", "quote": "...", "hard": true}]}
 
 Chunks:
 {{chunks}}

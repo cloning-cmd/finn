@@ -198,7 +198,10 @@ def _make_engine():
         path = url.replace("sqlite:///", "")
         (ROOT / path).parent.mkdir(parents=True, exist_ok=True)
         return create_engine(f"sqlite:///{ROOT / path}", connect_args={"check_same_thread": False}, future=True)
-    return create_engine(url, pool_pre_ping=True, pool_size=3, max_overflow=2, future=True)
+    # Supabase transaction pooler (pgbouncer, port 6543) cannot hold psycopg's server-side prepared statements
+    # across connections -> "prepared statement _pg3_0 already exists" on executemany. Disable them.
+    connect_args = {"prepare_threshold": None} if "+psycopg" in url else {}
+    return create_engine(url, pool_pre_ping=True, pool_size=3, max_overflow=2, future=True, connect_args=connect_args)
 
 
 engine = _make_engine()

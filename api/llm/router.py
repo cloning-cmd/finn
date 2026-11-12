@@ -50,8 +50,33 @@ def _strip_json(text: str) -> str:
     return t[i:j + 1] if i >= 0 and j > i else t
 
 
+def _loads(text: str) -> object:
+    """Strict JSON first; on failure a tolerant parse (trailing commas, unescaped quotes, truncated tails)."""
+    raw = _strip_json(text)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        from json_repair import repair_json
+        fixed = repair_json(raw, return_objects=True)
+        if fixed in ("", None, [], {}):
+            raise
+        return fixed
+
+
 def _complete(model: str, messages: list[dict], max_tokens: int, temperature: float) -> tuple[str, int, int, float]:
-    """One provider call. Returns (text, tokens_in, tokens_out, cost_inr). Patched in tests."""
+    """One provider call. Returns (text, tokens_in, tokens_out, cost_inr). Patched in tests.
+    Transient provider errors (429/5xx/timeouts) are retried once after a short pause before falling through."""
+    import time as _t
+    try:
+        return _complete_once(model, messages, max_tokens, temperature)
+    except Exception as e:  # noqa: BLE001
+        if not _retryable(e):
+            raise
+        _t.sleep(4)
+        return _complete_once(model, messages, max_tokens, temperature)
+
+
+def _complete_once(model: str, messages: list[dict], max_tokens: int, temperature: float) -> tuple[str, int, int, float]:
     import litellm
     litellm.drop_params = True
     kwargs: dict = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature, "timeout": 90}
@@ -103,13 +128,13 @@ def call(task: str, prompt_version: str, prompt: str, schema: Type[T], system: O
             text, a, b, c = _complete(model, messages, max_tokens, temperature)
             tin, tout, cost = tin + a, tout + b, cost + c
             try:
-                obj = schema.model_validate(json.loads(_strip_json(text)))
+                obj = schema.model_validate(_loads(text))
             except (ValidationError, json.JSONDecodeError) as ve:  # one repair retry with the error shown
                 repair = messages + [{"role": "assistant", "content": text},
                                      {"role": "user", "content": f"That JSON failed validation: {str(ve)[:800]}. Return the corrected JSON object only."}]
                 text, a, b, c = _complete(model, repair, max_tokens, temperature)
                 tin, tout, cost = tin + a, tout + b, cost + c
-                obj = schema.model_validate(json.loads(_strip_json(text)))
+                obj = schema.model_validate(_loads(text))
         except Exception as e:  # noqa: BLE001 - provider errors are heterogeneous
             last_err = e
             log.warning("llm %s/%s failed: %s", task, model, str(e)[:200])

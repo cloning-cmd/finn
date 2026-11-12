@@ -142,6 +142,29 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
 - Order wins → `press_release` (no "order" category); rumour verifications → `press_release` at full intensity.
 
+## 2026-11-12 (12:30) — Promise ledger v2: dedupe, period normalisation, code-only later mentions
+- Finding (INFY, first Gemini run, ₹4.54): 58 promises from 355 management chunks, but the same guidance was
+  recorded up to 5× per call ("1.5% to 3.5% FY27" quoted five ways), non-guidance facts slipped in (nine-month
+  margin, a client's $450 mn target, a market-size projection), "this year" / "the year" were left unnormalised so
+  the code matcher skipped them, and the embedding-based later-mention check marked obvious reiterations "absent"
+  (20,000 freshers mentioned in every call) or "lowered" on a stray "21%".
+- Decision: prompt v2 (own-company forward commitments only; one record per commitment per chunk; `basis` field;
+  fiscal year of the call given as [fy=FYnn] so "this year" → FY of the call). Code: `normalize_period`, `dedupe`
+  by (call, metric, period, band), `hard` requires a period, later mentions come first from the extracted promises
+  of later calls (same metric + horizon → raised/lowered/reiterated by band comparison), embedding search only as
+  fallback; `revised_down` only when the latest mention is lower; bps-sized "margin" deltas are not compared with OPM.
+- Decision: constant-currency growth guidance is compared with reported INR growth with a wider tolerance (±3 pp)
+  and the caveat written into `actual_text` ("guidance is constant currency, not directly comparable"). The
+  PromiseStatus enum is frozen, so no new "not comparable" status; the words carry the caveat.
+
+## 2026-11-12 (12:15) — Supabase transaction pooler: disable psycopg prepared statements
+- Finding: the first bulk insert through the pooler (port 6543, pgbouncer transaction mode) failed with
+  `DuplicatePreparedStatement "_pg3_0" already exists`. Single-row writes worked, so seed/eod passed and only the
+  258-row filings upsert failed.
+- Decision: `create_engine(..., connect_args={"prepare_threshold": None})` for `+psycopg` URLs. Also: the router
+  retries one transient 429/5xx/timeout per model after 4 s, and parses model JSON with `json_repair` when strict
+  parsing fails (Gemini 3 flash-preview returned a JSON object with a missing comma; the repair round-trip failed).
+
 ## 2026-11-12 (11:15) — Gemini model IDs: 2.5 family is closed to new keys; pro tier needs billing
 - Finding (first real run): `gemini-2.5-flash-lite`, `-flash`, `-pro` return 404 "no longer available to new users".
   `gemini-3.1-pro-preview`, `gemini-pro-latest`, `gemini-4-*` return 429 quota on this (free-tier) key.
