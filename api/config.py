@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
 
-    cheap_model: str = "gemini/gemini-2.5-flash-lite"
-    cheap_model_fallback: str = "groq/llama-3.3-70b-versatile"
-    strong_model: str = "gemini/gemini-2.5-pro"
-    strong_model_fallback: str = "gemini/gemini-2.5-flash"
+    cheap_model: str = "gemini/gemini-3.5-flash-lite"
+    cheap_model_fallback: str = "gemini/gemini-3.1-flash-lite"
+    strong_model: str = "gemini/gemini-3.5-flash"
+    strong_model_fallback: str = "gemini/gemini-3-flash-preview"
 
     tavily_api_key: str = ""
 

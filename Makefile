@@ -2,7 +2,7 @@
 PY ?= $(shell if [ -x api/.venv/Scripts/python.exe ]; then echo api/.venv/Scripts/python.exe; else echo api/.venv/bin/python; fi)
 T ?= INFY
 
-.PHONY: dev api web ingest enrich eod research test seed vapid spikes
+.PHONY: dev api web ingest enrich eod research test seed vapid spikes deploy
 
 dev: ## run API (8000) and web (3000) together
 	@$(MAKE) -j2 api web
@@ -36,3 +36,6 @@ vapid: ## print a fresh VAPID key pair for .env
 
 spikes:
 	$(PY) spikes/s1_yfinance.py
+
+deploy: ## create GitHub repo + push, set Actions secrets, deploy Render API + Vercel web (tokens from .env). Subset: make deploy S="render vercel"
+	$(PY) -m jobs.deploy $(S)

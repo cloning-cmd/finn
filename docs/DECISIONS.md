@@ -142,6 +142,18 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
 - Order wins → `press_release` (no "order" category); rumour verifications → `press_release` at full intensity.
 
+## 2026-11-12 (11:15) — Gemini model IDs: 2.5 family is closed to new keys; pro tier needs billing
+- Finding (first real run): `gemini-2.5-flash-lite`, `-flash`, `-pro` return 404 "no longer available to new users".
+  `gemini-3.1-pro-preview`, `gemini-pro-latest`, `gemini-4-*` return 429 quota on this (free-tier) key.
+  `gemini-3.8-flash` and `gemini-flash-latest` time out / "high demand". Working with JSON mode:
+  `gemini-3.5-flash-lite` (≈2.6 s, priced by LiteLLM), `gemini-3.1-flash-lite` (1.7 s), `gemini-3.5-flash`
+  (3.6 s, ~360 reasoning tokens per call), `gemini-3-flash-preview` (2.6 s).
+- Decision: CHEAP = `gemini/gemini-3.5-flash-lite` → fallback `gemini/gemini-3.1-flash-lite`;
+  STRONG = `gemini/gemini-3.5-flash` → fallback `gemini/gemini-3-flash-preview`. Groq fallback dropped from the
+  defaults (no key). Model IDs live only in env/config, so this is a config change, not a code change.
+- Why: the only free-tier models that answer reliably; flash-class is adequate for synthesis over code-computed
+  numbers and verified quotes. Revisit if billing is enabled (pro preview) before the Sat freeze.
+
 ## 2026-11-12 (10:45) — Strong model on Gemini too
 - Decision (user): `STRONG_MODEL=gemini/gemini-2.5-pro`, fallback `gemini/gemini-2.5-flash`; cheap tier unchanged
   (`gemini-2.5-flash-lite`, Groq fallback). One provider key (`GEMINI_API_KEY`) runs the whole app; Anthropic/OpenAI
