@@ -1,13 +1,15 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import type { Card, Source } from "@/lib/types";
+import type { Source } from "@/lib/types";
+
+export interface SheetTarget { ticker: string; headline: string; sources: Source[] }
 
 function host(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; }
 }
 
-/** Bottom sheet listing every source behind a card (filing PDF, XBRL, related filings). */
-export default function SourceSheet({ card, focus, onClose }: { card: Card | null; focus?: string; onClose: () => void }) {
+/** Bottom sheet listing every source behind a card or claim (filing PDF, XBRL, transcript page, related filings). */
+export default function SourceSheet({ card, focus, onClose }: { card: SheetTarget | null; focus?: string; onClose: () => void }) {
   const related: Source[] = card ? card.sources.filter((s) => s.id.startsWith("s_rel_")) : [];
   const primary: Source[] = card ? card.sources.filter((s) => !s.id.startsWith("s_rel_")) : [];
   return (
