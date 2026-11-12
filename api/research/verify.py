@@ -32,7 +32,9 @@ def numbers_in(text: str, facts_only: bool = False) -> list[float]:
     """Numbers in text (Indian grouping, unit words scaled to Rs Cr). facts_only skips years and small counts
     ("3 lines", "2 segments") unless they carry %/x/bps."""
     out = []
-    for m in NUM_RE.finditer(text or ""):
+    # "Rs.2635" / "INR.500" / "₹.12": the currency period would otherwise hide the number from NUM_RE
+    text = re.sub(r"(?i)\b(rs|inr)\.(?=\d)|₹\.?(?=\d)", lambda m: m.group(0).rstrip(".") + " ", text or "")
+    for m in NUM_RE.finditer(text):
         raw = m.group(0).replace(",", "")
         try:
             v = float(raw)

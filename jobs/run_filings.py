@@ -33,6 +33,8 @@ def main(days: int | None = None) -> None:
     print("results:", enrich_results())
     from api.pipeline.enrich_people import enrich_people
     print("people:", enrich_people())
+    from api.pipeline.enrich_oneliner import enrich_oneliners
+    print("one_liners:", enrich_oneliners())
     from api.pipeline.alerts import evaluate
     print("alerts:", evaluate())
 

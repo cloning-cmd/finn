@@ -18,6 +18,15 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **Specific headlines for generic filings** (2026-11-13): `api/pipeline/enrich_oneliner.py` + prompt
+  `one_liner.md` v1. Lead/line cards whose headline is "Disclosure under Regulation 30…", "Credit Rating",
+  "Rumour Verification…" etc. get a model-written headline + one-liner + one verbatim supporting sentence; code
+  rejects the output unless the sentence is in the filing (rapidfuzz ≥ 85) and every number in headline/one-liner
+  is in the filing text. The sentence becomes the filing source's `quote` (shown in the source sheet). Runs at the
+  end of `run_filings`; `make headlines`. Local: 9 of 9 generic cards rewritten and verified, ₹0.48 total.
+  Verifier fix: `numbers_in` now reads "Rs.2635" / "INR.500" (the currency period hid the number). 45 tests.
+- **Research SSE client fix** (commit 4e29e29): sse-starlette ends lines with `\r\n`; the web client split on
+  `\n\n`, so every fresh build from the browser failed with a JSON parse error. Deployed and confirmed by the user.
 - **People enrichment** (2026-11-13 05:10): `api/pipeline/enrich_people.py` + prompt `people_extract.md` v1. Cheap
   model locates name / role / change / verbatim profile lines / prior roles / replaced person; code verifies every
   line against the filing text (rapidfuzz ≥ 85, numbers must match), parses the effective date, picks the most
@@ -77,9 +86,8 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
    build BAJFINANCE, TATAPOWER + 1 unseen ticker from the Vercel app; review ledgers/verdicts; record ₹ per
    dossier. Run `make people` and `make enrich` once against Supabase (or dispatch the filings workflow) so the
    production Brief carries people and results payloads.
-2. **Cheap-LLM `one_liner`** for generic "Disclosure under Reg 30" leads and the SUZLON credit-rating cards (same
-   pattern as `enrich_people`: model locates, code verifies). Then check the People card in the Brief on real data
-   (HDFCBANK 17 Oct, DIXON 30 Oct) and the `.zip` attachment case (TRENT 19 Oct: unzip first PDF).
+2. **`.zip` attachments** (TRENT 19 Oct people filing has only a .zip): unzip and read the first PDF in
+   `filing_text`. Then Phase 3 polish: Brief empty/loading states for the Render cold start, card copy pass.
 3. **Push delivery check on the phone**: Vercel app → Rules → Enable (iOS needs Add to Home Screen first); fire
    `/admin/replay` for 12 Nov from the Alerts Demo control and confirm notifications arrive; trigger both Actions
    workflows once via workflow_dispatch and confirm NSE is reachable from the runners (BSE fallback otherwise).

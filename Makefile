@@ -51,3 +51,6 @@ deploy: ## create GitHub repo + push, set Actions secrets, deploy Render API + V
 
 people: ## bios from management-change filings (re-run with FORCE=1 to rebuild)
 	$(PY) -c "from api.pipeline.enrich_people import enrich_people; print(enrich_people(force=bool('$(FORCE)')))"
+
+headlines: ## rewrite generic headlines on lead/line cards with a verified one-liner (FORCE=1 to redo)
+	$(PY) -c "from api.pipeline.enrich_oneliner import enrich_oneliners; print(enrich_oneliners(force=bool('$(FORCE)')))"
