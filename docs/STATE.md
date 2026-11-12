@@ -57,8 +57,8 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
    NL rule parsing, Rules screen, Alerts screen + replay a day.
 
 ## Blockers (user actions)
-- Fill `.env` (repo root, git-ignored, already created with every key named): at least one of GEMINI/GROQ, at
-  least one of ANTHROPIC/OPENAI, Supabase pooled `DATABASE_URL`, and GITHUB_TOKEN / VERCEL_TOKEN / RENDER_API_KEY
+- Fill `.env` (repo root, git-ignored, already created with every key named): `GEMINI_API_KEY` (runs both the
+  cheap and strong tiers), Supabase pooled `DATABASE_URL`, and GITHUB_TOKEN / VERCEL_TOKEN / RENDER_API_KEY
   for CLI deploys. Run `supabase/migrations/001_init.sql` in the Supabase SQL editor.
 - A stale API server from an earlier session (PID 28484, started before the research router existed) still holds
   port 8000, so the web app's `/research` gets 404 from it. Stop it (close that terminal or
@@ -72,7 +72,7 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 | Web (Vercel) | not deployed |
 | API host (Render) | not deployed; `render.yaml` ready |
 | Supabase project | exists; migration not run; URL not in .env |
-| Cheap / strong LLM keys | `.env` created, keys blank |
+| Cheap / strong LLM keys | both tiers on Gemini; `GEMINI_API_KEY` blank in `.env` |
 | Web search API key | none |
 | VAPID keys | generated, in `.env` |
 | Local | API `http://127.0.0.1:8000` · web `http://localhost:3000` · DB `data/finn.db` |

@@ -142,6 +142,13 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - Buyback → `bonus_split` bucket (capital-return corporate action; taxonomy has no buyback category), intensity 1.4.
 - Order wins → `press_release` (no "order" category); rumour verifications → `press_release` at full intensity.
 
+## 2026-11-12 (10:45) — Strong model on Gemini too
+- Decision (user): `STRONG_MODEL=gemini/gemini-2.5-pro`, fallback `gemini/gemini-2.5-flash`; cheap tier unchanged
+  (`gemini-2.5-flash-lite`, Groq fallback). One provider key (`GEMINI_API_KEY`) runs the whole app; Anthropic/OpenAI
+  keys stay supported but optional.
+- Why: one billing account and one key to manage before the deadline. Routing tiers and caching are unchanged;
+  the 2.5-pro call is still limited to synthesis once per ticker per quarter.
+
 ## 2026-11-12 (00:30) — Results numbers: NSE integrated-filing XBRL, comparatives from earlier quarters
 - Finding: `/api/corporates-financial-results` stops at the Dec-2024 quarter. From the quarter ended 31 Dec 2024
   (SEBI integrated filing) results live at `/api/integrated-filing-results?index=equities&symbol=X&period=Quarterly&size=100`

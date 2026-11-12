@@ -22,8 +22,8 @@ class Settings(BaseSettings):
 
     cheap_model: str = "gemini/gemini-2.5-flash-lite"
     cheap_model_fallback: str = "groq/llama-3.3-70b-versatile"
-    strong_model: str = "anthropic/claude-sonnet-4-5"
-    strong_model_fallback: str = "gemini/gemini-2.5-pro"
+    strong_model: str = "gemini/gemini-2.5-pro"
+    strong_model_fallback: str = "gemini/gemini-2.5-flash"
 
     tavily_api_key: str = ""
 
