@@ -77,7 +77,7 @@ and the Research screen are built and run end-to-end locally in numbers-only mod
 ## Live URLs & env status
 | Item | Value / status |
 | --- | --- |
-| GitHub repo | not created (`make deploy` → private `finn`) |
+| GitHub repo | https://github.com/cloning-cmd/finn (private; Actions secrets + variables set 12 Nov) |
 | Web (Vercel) | not deployed |
 | API host (Render) | not deployed; `jobs/deploy.py` + `render.yaml` ready |
 | Supabase project | exists; migration not run; URL not in .env |
