@@ -37,7 +37,7 @@ export async function researchStream(ticker: string, onProgress: (e: ProgressEve
   for (;;) {
     const { value, done } = await reader.read();
     if (done) break;
-    buf += dec.decode(value, { stream: true });
+    buf += dec.decode(value, { stream: true }).replace(/\r/g, ""); // sse-starlette ends lines with \r\n; JSON never carries a raw CR
     let i: number;
     while ((i = buf.indexOf("\n\n")) >= 0) { handle(buf.slice(0, i)); buf = buf.slice(i + 2); }
   }
