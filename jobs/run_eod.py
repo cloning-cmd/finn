@@ -17,6 +17,8 @@ def main(period: str = "400d") -> None:
     try:
         from api.pipeline.anomalies import run_anomalies  # Phase 1
         print("anomalies:", run_anomalies())
+        from api.pipeline.alerts import evaluate
+        print("alerts:", evaluate())
     except ImportError:
         print("anomalies: pipeline not built yet")
 
