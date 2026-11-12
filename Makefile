@@ -13,6 +13,15 @@ api:
 web:
 	cd web && npm run dev
 
+lan: ## serve API + web on the Wi-Fi address so a phone on the same network can open http://<pc-ip>:3000
+	@$(MAKE) -j2 api-lan web-lan
+
+api-lan:
+	$(PY) -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+web-lan:
+	cd web && npm run dev:lan
+
 ingest: ## pull filings for the portfolio (30-day backfill on first run) + classify + score
 	$(PY) -m jobs.run_filings
 
