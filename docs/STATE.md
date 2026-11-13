@@ -18,6 +18,11 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **UI redesign** (2026-11-13, commit bead29c): design tokens + `web/components/ui.tsx`; Brief stats + metric
+  tiles, Research build stepper + tabbed dossier + collapsible ledger, Alerts notification centre, settings-style
+  Rules; light/dark, desktop width. See DECISIONS 2026-11-13 UI redesign. Screenshot loop for review: a dev server
+  on 3100 with `NEXT_DIST_DIR=.next-preview NEXT_PUBLIC_API_URL=http://localhost:8000` (the user's own dev server
+  on 3000 uses `.next` and the LAN API address in `web/.env.local`).
 - **.zip attachments** (2026-11-13): `fetch_pdf` takes the largest PDF inside a zip (read in memory, 60 MB cap,
   `%PDF-` check); ingest now fetches `.zip` bodies; `enrich_people` backfills `body_text` for filings ingested
   before this. TRENT 19 Oct KMP filing → "Harish Bhat resigns as Non-Executive Non-Independent Director"; local
