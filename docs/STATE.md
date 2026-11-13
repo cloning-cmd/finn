@@ -18,6 +18,11 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **Brief 30-day crash fixed** (2026-11-13, commit 3fda0da): `CardView` picked the renderer by card type, so a
+  management change with the generic payload (TRENT .zip) and a guard-rejected "results" filing (RELIANCE) threw
+  on missing arrays and blanked the page. Now chosen by payload shape, arrays guarded, per-card error boundary.
+  `web/scripts/render-check.tsx` server-renders a saved Brief JSON (`npx tsx --tsconfig
+  scripts/tsconfig.check.json scripts/render-check.tsx brief.json`): production 30d → old 2/68 failed, new 0.
 - **Specific headlines for generic filings** (2026-11-13): `api/pipeline/enrich_oneliner.py` + prompt
   `one_liner.md` v1. Lead/line cards whose headline is "Disclosure under Regulation 30…", "Credit Rating",
   "Rumour Verification…" etc. get a model-written headline + one-liner + one verbatim supporting sentence; code
