@@ -95,7 +95,7 @@ def row_to_filing(row: dict) -> dict:
 
 
 def _fetch_body(url: Optional[str]) -> str:
-    if not url or not url.lower().endswith(".pdf"):
+    if not url or not url.lower().endswith((".pdf", ".zip")):
         return ""
     text, _ = text_from_url(url, max_pages=3)
     return text[:20000]

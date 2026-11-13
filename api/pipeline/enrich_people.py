@@ -217,12 +217,14 @@ def one_liner_for(p: PeoplePayload) -> Optional[str]:
 
 def filing_text(f: db.Filing) -> str:
     text = (f.body_text or "").strip()
-    if len(text) < 300 and f.attachment_url and f.attachment_url.lower().endswith(".pdf"):
+    if len(text) < 300 and f.attachment_url and f.attachment_url.lower().endswith((".pdf", ".zip")):
         p = fetch_pdf(f.attachment_url)
         if p is not None:
             pages, scanned = pdf_pages(p, 4)
             if not scanned:
                 text = "\n".join(pages)
+                if not (f.body_text or "").strip():
+                    f.body_text = text[:20000]  # backfill: filings ingested before .zip support have no text
     return re.sub(r"[ \t]+", " ", text)[:TEXT_LIMIT]
 
 

@@ -18,6 +18,10 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
 | 4 Harden + submit | Sun 15 Nov | not started |
 
 ## Last completed
+- **.zip attachments** (2026-11-13): `fetch_pdf` takes the largest PDF inside a zip (read in memory, 60 MB cap,
+  `%PDF-` check); ingest now fetches `.zip` bodies; `enrich_people` backfills `body_text` for filings ingested
+  before this. TRENT 19 Oct KMP filing → "Harish Bhat resigns as Non-Executive Non-Independent Director"; local
+  people coverage 16/16. 48 tests. Note: the same resignation also arrived as an 18 Oct filing; both show.
 - **Brief 30-day crash fixed** (2026-11-13, commit 3fda0da): `CardView` picked the renderer by card type, so a
   management change with the generic payload (TRENT .zip) and a guard-rejected "results" filing (RELIANCE) threw
   on missing arrays and blanked the page. Now chosen by payload shape, arrays guarded, per-card error boundary.
@@ -91,8 +95,9 @@ are built and committed. Left in Phase 2: people enrichment (bio from filing), c
    build BAJFINANCE, TATAPOWER + 1 unseen ticker from the Vercel app; review ledgers/verdicts; record ₹ per
    dossier. Run `make people` and `make enrich` once against Supabase (or dispatch the filings workflow) so the
    production Brief carries people and results payloads.
-2. **`.zip` attachments** (TRENT 19 Oct people filing has only a .zip): unzip and read the first PDF in
-   `filing_text`. Then Phase 3 polish: Brief empty/loading states for the Render cold start, card copy pass.
+2. **Phase 3 polish**: Brief loading state for the Render cold start (~50 s), card copy pass, collapse the same
+   people event filed on consecutive days (TRENT Harish Bhat 18 + 19 Oct) by person name, reclassify the RELIANCE
+   Jio notice that sits in `results`.
 3. **Push delivery check on the phone**: Vercel app → Rules → Enable (iOS needs Add to Home Screen first); fire
    `/admin/replay` for 12 Nov from the Alerts Demo control and confirm notifications arrive; trigger both Actions
    workflows once via workflow_dispatch and confirm NSE is reachable from the runners (BSE fallback otherwise).
