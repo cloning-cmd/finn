@@ -1,4 +1,5 @@
 "use client";
+import { Component, type ReactNode } from "react";
 import type { Card, Chip, ResultsPayload, PeoplePayload, MovePayload, GenericPayload } from "@/lib/types";
 import { CATEGORY_LABEL } from "@/lib/types";
 import { fmtCr, fmtPct, fmtBps, fmtX, fmtVol, fmtWhen, dirClass } from "@/lib/format";
@@ -24,7 +25,7 @@ function Results({ p }: { p: ResultsPayload }) {
           </tr>
         </thead>
         <tbody>
-          {p.metrics.map((m) => (
+          {(p.metrics ?? []).map((m) => (
             <tr key={m.name} className="border-t border-line/60">
               <td className="py-1 pr-2 text-fg">{m.name}</td>
               <td className="py-1 text-right">{fmtCr(m.value)}</td>
@@ -56,12 +57,12 @@ function People({ p }: { p: PeoplePayload }) {
       </div>
       {p.incoming && (
         <ul className="mt-1.5 space-y-0.5 text-muted">
-          {p.incoming.bio_lines.map((l, i) => <li key={i} className="flex gap-2"><span className="text-line">·</span><span>{l}</span></li>)}
+          {(p.incoming.bio_lines ?? []).map((l, i) => <li key={i} className="flex gap-2"><span className="text-line">·</span><span>{l}</span></li>)}
         </ul>
       )}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {p.flags.map((f) => <span key={f} className="rounded-sm bg-warn/15 px-1.5 py-0.5 text-[11px] text-warn">{f}</span>)}
-        {p.incoming?.bio_sources.map((s) => <span key={s.id} className="rounded-sm border border-line px-1.5 py-0.5 text-[11px] text-muted">{s.label}</span>)}
+        {(p.flags ?? []).map((f) => <span key={f} className="rounded-sm bg-warn/15 px-1.5 py-0.5 text-[11px] text-warn">{f}</span>)}
+        {(p.incoming?.bio_sources ?? []).map((s) => <span key={s.id} className="rounded-sm border border-line px-1.5 py-0.5 text-[11px] text-muted">{s.label}</span>)}
       </div>
     </div>
   );
@@ -81,7 +82,7 @@ function Move({ p, card }: { p: MovePayload; card: Card }) {
         {card.unexplained ? (
           <span className="rounded-sm bg-warn/15 px-1.5 py-0.5 text-warn">Unexplained · no filing in ±48h</span>
         ) : (
-          p.window_filings.map((f) => <span key={f.id} className="text-muted">Explained by: <span className="text-fg">{f.headline}</span></span>)
+          (p.window_filings ?? []).map((f) => <span key={f.id} className="text-muted">Explained by: <span className="text-fg">{f.headline}</span></span>)
         )}
       </div>
     </div>
@@ -97,12 +98,32 @@ function Generic({ p }: { p: GenericPayload }) {
   );
 }
 
+// One malformed payload must cost one card body, not the whole Brief.
+class BodyBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(e: unknown) { console.error("card body failed to render", e); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
+// The card type says what the filing is; the payload says what enrichment produced. A management change whose
+// attachment could not be read, or a "results" filing the XBRL guard rejected, still carries the generic payload,
+// so the renderer is chosen from the payload's shape and falls back to the generic view.
+function payloadKind(card: Card): "results" | "people" | "move" | "generic" {
+  const p = (card.payload ?? {}) as unknown as Record<string, unknown>;
+  if (card.type === "results" && Array.isArray(p.metrics)) return "results";
+  if (card.type === "management_change" && typeof p.change === "string" && typeof p.role === "string") return "people";
+  if ((card.type === "price_move" || card.type === "volume_spike") && typeof p.close === "number" && typeof p.z === "number") return "move";
+  return "generic";
+}
+
 export default function CardView({ card, compact = false, onChip, onExpand }: {
   card: Card; compact?: boolean; onChip?: (chip: Chip, card: Card) => void; onExpand?: (card: Card) => void;
 }) {
   const p = card.payload;
-  const related = card.sources.filter((s) => s.id.startsWith("s_rel_")).length;
-  const chips: Chip[] = related > 0 ? [{ label: `+${related} related`, action: "open_source", arg: "related" }, ...card.chips] : card.chips;
+  const kind = payloadKind(card);
+  const related = (card.sources ?? []).filter((s) => s.id.startsWith("s_rel_")).length;
+  const chips: Chip[] = related > 0 ? [{ label: `+${related} related`, action: "open_source", arg: "related" }, ...(card.chips ?? [])] : (card.chips ?? []);
   return (
     <article className={`rounded-xl border border-line bg-card ${compact ? "px-3 py-2.5" : "p-3.5"}`} onClick={compact && onExpand ? () => onExpand(card) : undefined}>
       <header className="flex items-center gap-2 text-[11px] text-muted">
@@ -116,10 +137,12 @@ export default function CardView({ card, compact = false, onChip, onExpand }: {
       {card.one_liner && !compact && <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{card.one_liner}</p>}
       {!compact && (
         <>
-          {card.type === "results" && <Results p={p as ResultsPayload} />}
-          {card.type === "management_change" && <People p={p as PeoplePayload} />}
-          {(card.type === "price_move" || card.type === "volume_spike") && <Move p={p as MovePayload} card={card} />}
-          {!["results", "management_change", "price_move", "volume_spike"].includes(card.type) && <Generic p={p as GenericPayload} />}
+          <BodyBoundary>
+            {kind === "results" && <Results p={p as ResultsPayload} />}
+            {kind === "people" && <People p={p as PeoplePayload} />}
+            {kind === "move" && <Move p={p as MovePayload} card={card} />}
+            {kind === "generic" && <Generic p={p as GenericPayload} />}
+          </BodyBoundary>
           {chips.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {chips.map((c, i) => (
