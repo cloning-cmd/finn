@@ -229,3 +229,21 @@ Caveat: NSE's "Earnings Call Transcript" filing for INFY was the *media* call; p
 - Rejected: Gemini embeddings API (free tier ~30k tokens/min → a 450k-token annual report takes 15 min);
   a paid Render plan (user's call, and the dependency on a 70 MB model download at every cold start would stay);
   running builds only in GitHub Actions (minutes of latency for the grader's first ticker).
+
+## 2026-11-13 — UI redesign: one design system across the four screens
+- Decision: references are Zerodha Kite (density, tabular numbers), Groww (stock page with section tabs, grouped
+  lists) and Robinhood (large numbers, notification inbox). Tokens in `web/app/globals.css`: neutral surfaces
+  (`bg`, `surface`, `surface-2`, `line`), one blue accent for interaction only, green/red only for direction and
+  statuses, theme-aware avatar lightness. Shared pieces in `web/components/ui.tsx` (PageHeader, Segmented,
+  TickerAvatar, Badge, Panel, Stat, SectionLabel, Empty, Skeleton, Button, Icon, Spinner, `stripTicker`).
+- Brief: large-title header with date, segmented 24H/3D/1W/1M, three summary stats, cards with ticker monogram +
+  company + type badge (the ticker is no longer repeated in the headline; the raw priority number moved to a
+  tooltip, lead cards get an accent dot), results as 2×2 metric tiles, filtered-out list as one grouped list.
+  A "waking the server" note appears after 4 s for the Render cold start.
+- Research: search field, suggested companies list, a five-stage build stepper with progress bar (raw log behind a
+  toggle), dossier split into Overview / Promises / Financials / Sources tabs; ledger shows a status bar and
+  collapses each metric group to two promises.
+- Alerts: notification-centre rows grouped by day, tap to expand the full card. Rules: settings-style groups,
+  switches, filled sliders, example prompts for the plain-English rule box.
+- Contracts unchanged; no API change. `next.config.ts` reads `NEXT_DIST_DIR` so a second local dev server can
+  use its own build folder.

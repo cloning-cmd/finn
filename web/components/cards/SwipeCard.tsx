@@ -15,7 +15,7 @@ export default function SwipeCard({ children, onSwipe }: { children: ReactNode; 
 
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-between rounded-xl px-4 text-[12px] font-medium uppercase tracking-wide">
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-between rounded-2xl px-5 text-[12px] font-medium uppercase tracking-wide">
         <motion.span style={{ opacity: notedOpacity }} className="rounded-full bg-up/15 px-2 py-1 text-up">Noted</motion.span>
         <motion.span style={{ opacity: lessOpacity }} className="rounded-full bg-down/15 px-2 py-1 text-down">Less of this</motion.span>
       </div>

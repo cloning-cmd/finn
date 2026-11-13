@@ -1,37 +1,54 @@
 @import "tailwindcss";
 
-/* FINN tokens — dark default, light via prefers-color-scheme or [data-theme="light"].
-   Green/red ONLY for directional numbers; one accent for priority. */
+/* FINN design tokens. Dark default; light via prefers-color-scheme or [data-theme="light"].
+   Neutral surfaces, one blue accent for interaction, green/red ONLY for directional numbers and statuses. */
 :root {
-  --bg: #0b0d10;
-  --fg: #e8eaed;
-  --muted: #8b919a;
-  --line: #22262c;
-  --card: #12151a;
-  --accent: #7dd3fc;
-  --up: #4ade80;
-  --down: #f87171;
-  --warn: #fbbf24;
+  --bg: #09090b;
+  --surface: #111114;
+  --surface-2: #18181c;
+  --line: #232329;
+  --line-strong: #303038;
+  --fg: #ededf0;
+  --muted: #9a9aa4;
+  --faint: #63636d;
+  --accent: #7b96ff;
+  --accent-fg: #0b1020;
+  --up: #3ecf8e;
+  --down: #f2555a;
+  --warn: #f5a524;
+  --shadow: 0 0 0 1px var(--line);
+  --avatar-l: 68%;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #f7f7f8; --fg: #16181d; --muted: #646b75; --line: #e2e4e8; --card: #ffffff;
-    --accent: #0369a1; --up: #15803d; --down: #b91c1c; --warn: #b45309; color-scheme: light;
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f1f4; --line: #e5e7eb; --line-strong: #d4d7dd;
+    --fg: #0f1115; --muted: #5d6470; --faint: #9aa0aa; --accent: #3355e8; --accent-fg: #ffffff;
+    --up: #0f9a58; --down: #d4343a; --warn: #b7741a; --avatar-l: 42%;
+    --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 0 0 1px var(--line);
+    color-scheme: light;
   }
 }
 :root[data-theme="light"] {
-  --bg: #f7f7f8; --fg: #16181d; --muted: #646b75; --line: #e2e4e8; --card: #ffffff;
-  --accent: #0369a1; --up: #15803d; --down: #b91c1c; --warn: #b45309; color-scheme: light;
+  --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f1f4; --line: #e5e7eb; --line-strong: #d4d7dd;
+  --fg: #0f1115; --muted: #5d6470; --faint: #9aa0aa; --accent: #3355e8; --accent-fg: #ffffff;
+  --up: #0f9a58; --down: #d4343a; --warn: #b7741a; --avatar-l: 42%;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 0 0 1px var(--line);
+  color-scheme: light;
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--surface);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-line: var(--line);
-  --color-card: var(--card);
+  --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
   --color-up: var(--up);
   --color-down: var(--down);
   --color-warn: var(--warn);
@@ -45,16 +62,24 @@ body {
   color: var(--fg);
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
   margin: 0;
   overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .tabular { font-variant-numeric: tabular-nums; }
+.surface { background: var(--surface); box-shadow: var(--shadow); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: color-mix(in oklab, var(--accent) 35%, transparent); }
 
-.status-kept, .status-on_track { background: color-mix(in oklab, var(--up) 18%, transparent); color: var(--up); }
-.status-missed, .status-revised_down { background: color-mix(in oklab, var(--down) 18%, transparent); color: var(--down); }
-.status-quietly_dropped { background: color-mix(in oklab, var(--warn) 18%, transparent); color: var(--warn); }
-.status-too_early { background: var(--line); color: var(--muted); }
+/* Status tints (promise ledger, guidance pills) */
+.status-kept, .status-on_track { background: color-mix(in oklab, var(--up) 14%, transparent); color: var(--up); }
+.status-missed, .status-revised_down { background: color-mix(in oklab, var(--down) 14%, transparent); color: var(--down); }
+.status-quietly_dropped { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+.status-too_early { background: var(--surface-2); color: var(--muted); }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

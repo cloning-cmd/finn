@@ -15,7 +15,10 @@ export const metadata: Metadata = {
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
 };
 export const viewport: Viewport = {
-  themeColor: "#0b0d10",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -25,7 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="mx-auto min-h-dvh max-w-md px-4 pb-20" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="mx-auto min-h-dvh max-w-[560px] px-4 pb-28 md:max-w-[720px] md:px-6" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           {children}
         </div>
         <BottomNav />

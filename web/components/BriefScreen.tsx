@@ -9,29 +9,41 @@ import CardView from "@/components/cards/CardView";
 import SwipeCard, { type SwipeAction } from "@/components/cards/SwipeCard";
 import SourceSheet from "@/components/SourceSheet";
 import Toast, { type ToastState } from "@/components/Toast";
+import { Button, Empty, Icon, PageHeader, Segmented, SectionLabel, Skeleton, TickerAvatar, cx, stripTicker } from "@/components/ui";
 
 const WINDOWS = ["24h", "3d", "7d", "30d"] as const;
 type Win = (typeof WINDOWS)[number];
+const WIN_LABEL: Record<Win, string> = { "24h": "24H", "3d": "3D", "7d": "1W", "30d": "1M" };
 const UNDO_MS = 4000;
+
+function today(): string {
+  return new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+}
 
 export default function BriefScreen() {
   const params = useSearchParams();
   const router = useRouter();
   const fixture = params.get("fixture") === "1" || process.env.NEXT_PUBLIC_FIXTURE === "1";
-  const [win, setWin] = useState<Win>("7d");
+  const initial = params.get("w");
+  const [win, setWin] = useState<Win>(WINDOWS.includes(initial as Win) ? (initial as Win) : "7d");
   const [brief, setBrief] = useState<Brief | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
   const [openBuried, setOpenBuried] = useState<string | null>(null);
   const [gone, setGone] = useState<Record<string, SwipeAction>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sheet, setSheet] = useState<{ card: Card; focus?: string } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [nonce, setNonce] = useState(0);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
-    setBrief(null); setErr(null); setGone({});
-    api.brief(win, fixture).then(setBrief).catch((e) => setErr(String(e)));
-  }, [win, fixture]);
+    setBrief(null); setErr(null); setGone({}); setSlow(false);
+    // The free API host sleeps when idle; say so instead of showing a blank skeleton for ~50 s.
+    const t = setTimeout(() => setSlow(true), 4000);
+    api.brief(win, fixture).then(setBrief).catch((e) => setErr(String(e))).finally(() => clearTimeout(t));
+    return () => clearTimeout(t);
+  }, [win, fixture, nonce]);
 
   useEffect(() => () => { Object.values(timers.current).forEach(clearTimeout); }, []);
 
@@ -66,38 +78,53 @@ export default function BriefScreen() {
   const visible = brief ? brief.cards.filter((c) => !gone[c.id]) : [];
   const matter = brief ? brief.counts.lead + brief.counts.line : 0;
   const hidden = Object.keys(gone).length;
+  const total = brief ? matter + brief.counts.buried : 0;
 
   return (
     <main>
-      <header className="sticky top-0 z-30 -mx-4 border-b border-line bg-bg/95 px-4 pb-2 pt-3 backdrop-blur" style={{ top: "env(safe-area-inset-top, 0px)" }}>
-        <div className="flex items-center gap-2">
-          <h1 className="text-[17px] font-semibold tracking-tight">Brief</h1>
-          <div className="ml-auto flex gap-1">
-            {WINDOWS.map((w) => (
-              <button key={w} onClick={() => setWin(w)} className={`rounded-full px-2.5 py-1 text-[12px] ${w === win ? "bg-fg text-bg" : "border border-line text-muted"}`}>{w}</button>
-            ))}
-          </div>
-        </div>
-        <p className="tabular mt-1 text-[12.5px] text-muted">
-          {brief ? (<><span className="text-fg">{matter - hidden} matter</span> · {brief.counts.buried} buried · ~{brief.minutes_saved} min saved{brief.as_of === "fixture" && " · demo data"}</>) : err ? "API unreachable" : "…"}
-        </p>
-      </header>
+      <PageHeader eyebrow={today()} title="Brief">
+        <Segmented options={WINDOWS} value={win} onChange={setWin} labels={WIN_LABEL} />
+      </PageHeader>
 
-      {err && <p className="mt-6 text-[13px] text-muted">Could not load the brief ({err}). Is the API running?</p>}
+      {brief && (
+        <section className="surface mt-1 grid grid-cols-3 divide-x divide-line rounded-2xl py-3">
+          <div className="px-4">
+            <div className="text-[11.5px] text-muted">Needs a look</div>
+            <div className="tabular text-[22px] font-semibold tracking-tight">{Math.max(matter - hidden, 0)}</div>
+          </div>
+          <div className="px-4">
+            <div className="text-[11.5px] text-muted">Filtered out</div>
+            <div className="tabular text-[22px] font-semibold tracking-tight text-muted">{brief.counts.buried}<span className="text-[13px] font-normal text-faint">/{total}</span></div>
+          </div>
+          <div className="px-4">
+            <div className="text-[11.5px] text-muted">Time saved</div>
+            <div className="tabular text-[22px] font-semibold tracking-tight">{Math.round(brief.minutes_saved)}<span className="ml-0.5 text-[13px] font-normal text-muted">min</span></div>
+          </div>
+        </section>
+      )}
+      {brief?.as_of === "fixture" && <p className="mt-2 px-1 text-[12px] text-warn">Demo data</p>}
+
+      {err && (
+        <Empty icon={<Icon name="refresh" />} title="Could not load the brief" body="The API did not answer. It may be waking up; try again in a moment."
+          action={<Button variant="secondary" size="sm" onClick={() => setNonce((n) => n + 1)}>Retry</Button>} />
+      )}
 
       {!brief && !err && (
-        <div className="mt-3 space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-xl border border-line bg-card" />)}</div>
+        <div className="mt-1 space-y-3">
+          <Skeleton className="h-[74px]" />
+          {slow && <p className="px-1 text-[12.5px] text-muted">Waking the server. The first load after a quiet spell takes up to a minute.</p>}
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-32" />)}
+        </div>
       )}
 
       {brief && (
         <>
-          {visible.length === 0 && (
-            <p className="mt-6 text-center text-[13px] text-muted">Nothing above the line in this window.</p>
-          )}
-          <section className="mt-3 space-y-2">
+          {visible.length > 0 && <SectionLabel right={<span className="normal-case tracking-normal">Swipe right: noted · left: less</span>}>Needs a look</SectionLabel>}
+          {visible.length === 0 && <Empty icon={<Icon name="check" />} title="Nothing needs a look" body="No filing or price move in this window crossed your thresholds." />}
+          <section className="space-y-3">
             <AnimatePresence initial={false}>
               {visible.map((c) => (
-                <motion.div key={c.id} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0, marginBottom: 0 }} transition={{ duration: 0.2 }}>
+                <motion.div key={c.id} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0, marginTop: 0 }} transition={{ duration: 0.2 }}>
                   <SwipeCard onSwipe={(a) => onSwipe(c, a)}>
                     <CardView card={c} compact={c.tier === "line" && !expanded[c.id]} onChip={onChip} onExpand={(card) => setExpanded((e) => ({ ...e, [card.id]: true }))} />
                   </SwipeCard>
@@ -106,28 +133,45 @@ export default function BriefScreen() {
             </AnimatePresence>
           </section>
 
-          <section className="mt-8 text-center">
-            <p className="text-[15px] font-medium">You&apos;re caught up.</p>
-            <p className="mt-0.5 text-[12.5px] text-muted">{brief.counts.buried} routine filings buried below.</p>
-          </section>
+          {visible.length > 0 && (
+            <div className="mt-8 flex flex-col items-center text-center">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-up/12 text-up"><Icon name="check" size={20} strokeWidth={2.2} /></span>
+              <p className="mt-2 text-[15px] font-semibold">You&apos;re caught up</p>
+              <p className="mt-0.5 text-[12.5px] text-muted">{brief.counts.buried} routine filings were filtered out below.</p>
+            </div>
+          )}
 
-          <section className="mt-5 space-y-1.5">
-            {brief.buried.map((g) => (
-              <div key={g.category} className="rounded-lg border border-line">
-                <button onClick={() => setOpenBuried(openBuried === g.category ? null : g.category)} className="flex w-full items-center px-3 py-2 text-[13px]">
-                  <span className="text-muted">{CATEGORY_LABEL[g.category]}</span>
-                  <span className="tabular ml-auto text-muted">{g.count}</span>
-                </button>
-                {openBuried === g.category && (
-                  <ul className="border-t border-line px-3 py-1.5 text-[12.5px]">
-                    {g.items.map((it) => (
-                      <li key={it.id} className="flex gap-2 py-1"><span className="w-20 shrink-0 font-medium">{it.ticker}</span><span className="text-muted">{it.headline}</span></li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </section>
+          {brief.buried.length > 0 && (
+            <>
+              <SectionLabel right={brief.counts.buried}>Filtered out</SectionLabel>
+              <ul className="surface divide-y divide-line overflow-hidden rounded-2xl">
+                {brief.buried.map((g) => {
+                  const open = openBuried === g.category;
+                  return (
+                    <li key={g.category}>
+                      <button onClick={() => setOpenBuried(open ? null : g.category)} aria-expanded={open}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2">
+                        <span className="text-[13.5px]">{CATEGORY_LABEL[g.category]}</span>
+                        <span className="tabular ml-auto rounded-md bg-surface-2 px-1.5 py-0.5 text-[11.5px] text-muted">{g.count}</span>
+                        <Icon name="down" size={16} className={cx("text-faint transition-transform", open && "rotate-180")} />
+                      </button>
+                      {open && (
+                        <ul className="space-y-2.5 bg-surface-2/50 px-4 py-3">
+                          {g.items.map((it) => (
+                            <li key={it.id} className="flex items-center gap-2.5">
+                              <TickerAvatar ticker={it.ticker} size={24} />
+                              <span className="w-24 shrink-0 truncate text-[12.5px] font-medium">{it.ticker}</span>
+                              <span className="truncate text-[12.5px] text-muted">{stripTicker(it.headline, it.ticker)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </>
       )}
 

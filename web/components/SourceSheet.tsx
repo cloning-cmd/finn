@@ -21,7 +21,7 @@ export default function SourceSheet({ card, focus, onClose }: { card: SheetTarge
             key="sheet"
             role="dialog"
             aria-label="Sources"
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[80dvh] max-w-md overflow-y-auto rounded-t-2xl border border-line bg-card px-4 pb-8 pt-3"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[80dvh] max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface px-5 pb-8 pt-3"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 420, damping: 38 }}
           >
@@ -34,7 +34,7 @@ export default function SourceSheet({ card, focus, onClose }: { card: SheetTarge
               {primary.map((s) => (
                 <li key={s.id}>
                   <a href={s.url} target="_blank" rel="noopener noreferrer"
-                     className={`block rounded-lg border px-3 py-2 ${focus === s.id ? "border-accent" : "border-line"}`}>
+                     className={`block rounded-xl border px-3.5 py-3 transition-colors hover:bg-surface-2 ${focus === s.id ? "border-accent/60 bg-accent/[0.05]" : "border-line"}`}>
                     <div className="text-[13px] text-fg">{s.label}{s.page ? <span className="text-muted"> · p.{s.page}</span> : null}</div>
                     <div className="truncate text-[11.5px] text-muted">{host(s.url)}</div>
                     {s.quote && <blockquote className="mt-1 border-l-2 border-line pl-2 text-[12px] text-muted">“{s.quote}”</blockquote>}
